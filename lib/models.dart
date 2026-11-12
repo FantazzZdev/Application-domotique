@@ -200,6 +200,8 @@ class AssistantSettings {
     this.pitch = 1.0,
     this.voiceName = '',
     this.voice = true,
+    this.neuralVoice = '',
+    this.aiEffect = 0.45,
   });
 
   Persona persona;
@@ -221,6 +223,12 @@ class AssistantSettings {
   /// Réponses parlées (sinon affichées seulement).
   bool voice;
 
+  /// Voix IA intégrée (« pierre », « siwis »…). Vide = voix du téléphone.
+  String neuralVoice;
+
+  /// Intensité de l'effet « IA » sur la voix intégrée (0 à 1).
+  double aiEffect;
+
   Map<String, dynamic> toJson() => {
         'persona': persona.name,
         'title': title,
@@ -230,6 +238,8 @@ class AssistantSettings {
         'pitch': pitch,
         'voiceName': voiceName,
         'voice': voice,
+        'neuralVoice': neuralVoice,
+        'aiEffect': aiEffect,
       };
 
   factory AssistantSettings.fromJson(Map<String, dynamic>? j) => j == null
@@ -243,6 +253,8 @@ class AssistantSettings {
           pitch: (j['pitch'] as num?)?.toDouble() ?? 1.0,
           voiceName: (j['voiceName'] as String?) ?? '',
           voice: (j['voice'] as bool?) ?? true,
+          neuralVoice: (j['neuralVoice'] as String?) ?? '',
+          aiEffect: (j['aiEffect'] as num?)?.toDouble() ?? 0.45,
         );
 }
 

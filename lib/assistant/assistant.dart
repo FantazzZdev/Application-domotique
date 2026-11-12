@@ -9,6 +9,7 @@ import 'package:speech_to_text/speech_to_text.dart';
 import '../app_state.dart';
 import '../models.dart';
 import 'intent_parser.dart';
+import 'neural_voice.dart';
 
 enum AssistantPhase { idle, listening, thinking, speaking }
 
@@ -26,6 +27,10 @@ class Assistant extends ChangeNotifier {
   final AppState app;
   final SpeechToText _stt = SpeechToText();
   final FlutterTts _tts = FlutterTts();
+  final NeuralVoiceEngine neural = NeuralVoiceEngine();
+
+  /// Erreur liée aux voix IA (téléchargement…).
+  String? voiceError;
 
   AssistantPhase phase = AssistantPhase.idle;
   String transcript = '';
@@ -313,6 +318,7 @@ class Assistant extends ChangeNotifier {
       return;
     }
     await _tts.stop();
+    await neural.stop();
     await _pauseWake();
     if (!await _initStt()) {
       await _say('Je n\'ai pas accès au micro. Autorisez-le dans les réglages du téléphone.');
@@ -452,9 +458,61 @@ class Assistant extends ChangeNotifier {
     await _resumeWake();
   }
 
+  /// Voix IA intégrée choisie, si elle est installée.
+  Future<NeuralVoiceOption?> activeNeuralVoice() async {
+    final v = neuralVoiceById(settings.neuralVoice);
+    if (v == null || v.male != settings.persona.male) return null;
+    return await neural.isInstalled(v.model) ? v : null;
+  }
+
+  Future<bool> _sayNeural(String text) async {
+    final v = await activeNeuralVoice();
+    if (v == null) return false;
+    try {
+      await _tts.stop();
+      final f = await neural.synthesize(v, text,
+          speed: 0.5 + settings.speechRate, effect: settings.aiEffect);
+      await neural.play(f);
+      return true;
+    } on Exception {
+      return false; // repli sur la voix du téléphone
+    }
+  }
+
+  /// Télécharge et installe une voix IA, puis la sélectionne.
+  Future<void> installVoice(NeuralVoiceOption v) async {
+    if (neural.downloads.containsKey(v.model.id)) return;
+    voiceError = null;
+    neural.downloads[v.model.id] = 0;
+    notifyListeners();
+    try {
+      await neural.install(v.model, (p) {
+        neural.downloads[v.model.id] = p;
+        notifyListeners();
+      });
+      settings.neuralVoice = v.id;
+      await app.saveSettings();
+    } on Exception catch (e) {
+      voiceError = 'Échec du téléchargement de la voix : $e';
+    } finally {
+      neural.downloads.remove(v.model.id);
+      notifyListeners();
+    }
+  }
+
+  Future<void> removeVoice(NeuralVoiceOption v) async {
+    await neural.uninstall(v.model);
+    if (neuralVoiceById(settings.neuralVoice)?.model.id == v.model.id) {
+      settings.neuralVoice = '';
+      await app.saveSettings();
+    }
+    notifyListeners();
+  }
+
   Future<void> _say(String text) async {
     // Le son peut être coupé pendant l'écoute du prénom : on le rétablit.
     await _pauseWake();
+    await neural.stop();
     reply = text;
     log.add(AssistantLog(false, text));
     if (log.length > 30) log.removeRange(0, log.length - 30);
@@ -463,6 +521,7 @@ class Assistant extends ChangeNotifier {
       await Future<void>.delayed(const Duration(milliseconds: 900));
       return;
     }
+    if (await _sayNeural(text)) return;
     await _initTts();
     try {
       await _tts.setSpeechRate(settings.speechRate);

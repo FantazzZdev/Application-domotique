@@ -14,6 +14,9 @@ ou par des **boutons sur l'écran d'accueil** du téléphone.
   est configuré) puis parlez : « ferme les volets », « ouvre le portail chez les beaux-parents »,
   « mets le volet du salon à 30 % », « stop les volets partout », « fais-moi un rapport »…
   L'assistant répond à voix haute et agit. En cas de doute (« quelle maison ? »), il demande.
+- **Voix IA intégrées** : voix neuronales (Piper) générées sur le téléphone, sans Internet
+  ni compte : *Pierre* pour Orion, *Siwis* ou *Jessica* pour Nova, avec un effet « IA » réglable.
+  Téléchargement unique (67 à 80 Mo) au premier choix ; la voix du téléphone reste disponible.
 - **Interface HUD** futuriste : réacteur animé qui réagit à la voix, curseurs verticaux
   pour régler chaque volet (et « Tous »), « maintenir pour activer » pour portail et garage.
 
@@ -88,3 +91,7 @@ portail, garage, lumières `levelCmd` = `ON` / `OFF` / `STOP` / `TOGGLE`
 Le protocole Tydom n'est pas documenté officiellement ; l'implémentation suit les projets
 open source qui l'utilisent (intégration Home Assistant *deltadore-tydom*, *tydom2mqtt*).
 Application non officielle, sans lien avec Delta Dore.
+
+Voix IA : moteur [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) (Apache 2.0) et modèles
+[Piper](https://github.com/rhasspy/piper) — *siwis* (données CC BY 4.0), *upmc* Pierre / Jessica
+(données CC BY-SA 4.0). Polices Orbitron et Rajdhani (SIL OFL 1.1).
