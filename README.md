@@ -1,12 +1,20 @@
-# DeltaHome
+# Jarvis — domotique Delta Dore
 
-Une seule app pour piloter **plusieurs comptes Delta Dore / Tydom en même temps** :
+Un assistant façon Iron Man pour piloter **plusieurs comptes Delta Dore / Tydom en même temps** :
 vos volets (votre compte) et le portail de la famille (leur compte), sans jamais
-vous déconnecter / reconnecter. Avec des **boutons sur l'écran d'accueil** du téléphone.
+vous déconnecter. À la voix (« Jarvis, ferme les volets »), par curseurs holographiques,
+ou par des **boutons sur l'écran d'accueil** du téléphone.
 
 ![Aperçu](docs/apercu.png)
 
 ## Fonctionnalités
+
+- **Assistant vocal Jarvis** : touchez le réacteur (ou dites « Jarvis » si le mot d'activation
+  est configuré) puis parlez : « ferme les volets », « ouvre le portail chez les beaux-parents »,
+  « mets le volet du salon à 30 % », « stop les volets partout », « fais-moi un rapport »…
+  Jarvis répond à voix haute et agit. S'il y a un doute (« quelle maison ? »), il demande.
+- **Interface HUD** futuriste : réacteur ARK animé qui réagit à la voix, curseurs verticaux
+  pour régler chaque volet (et « Tous »), « maintenir pour activer » pour portail et garage.
 
 - **Multi-comptes** : ajoutez autant de comptes Tydom que nécessaire (« Maison »,
   « Beaux-parents »…). Chacun a sa couleur ; tous restent connectés.
@@ -31,7 +39,17 @@ Onglet **Actions** du dépôt → dernier *APK Android* réussi → *Artifacts* 
 
 Ou en local : `flutter build apk --release` (Flutter 3.50+, SDK Android).
 
-Ajouter le widget : appui long sur l'écran d'accueil → *Widgets* → *DeltaHome*.
+Ajouter le widget : appui long sur l'écran d'accueil → *Widgets* → *Jarvis*
+(widgets « Jarvis » pour parler, « Bouton Jarvis » et « Protocoles Jarvis »).
+
+### Mot d'activation « Jarvis » (facultatif)
+
+Pour lancer l'écoute en disant simplement « Jarvis » (app ouverte), créez un compte gratuit sur
+[console.picovoice.ai](https://console.picovoice.ai/), copiez votre *AccessKey* et collez-la dans
+*Menu → Réglages de Jarvis*. La détection se fait sur le téléphone, rien n'est envoyé en ligne.
+Sans clé : touchez le réacteur, utilisez le widget « Jarvis » ou l'appui long sur l'icône de l'app.
+Quand l'app est fermée, Android et iOS ne permettent pas d'écouter le micro en continu sans
+notification permanente et forte consommation de batterie : le widget « Jarvis » est la porte d'entrée.
 
 ## Installer sur iPhone
 

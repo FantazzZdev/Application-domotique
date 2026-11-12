@@ -63,6 +63,19 @@ class TydomController {
     }
   }
 
+  /// Règle un volet à une position précise (0 = fermé, 100 = ouvert).
+  Future<void> setPosition(AppData data, Device device, int position) async {
+    final gw = _gateway(data, device.accountId, device.mac);
+    if (gw == null) throw TydomException('Compte introuvable pour ${device.name}.');
+    final value = position.clamp(0, 100);
+    if (device.family == CommandFamily.position) {
+      await clientFor(gw).putDeviceData(device.deviceId, device.endpointId, 'position', value);
+    } else {
+      await clientFor(gw).putDeviceData(device.deviceId, device.endpointId, 'level', value);
+    }
+    device.value = value.toDouble();
+  }
+
   /// Exécute un raccourci (un équipement, ou tous les volets d'un compte).
   Future<void> runShortcut(AppData data, Shortcut s) async {
     final targets = targetsOf(data, s);

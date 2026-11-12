@@ -24,6 +24,9 @@ class AppState extends ChangeNotifier {
   final Set<String> busy = {};
   bool refreshing = false;
 
+  /// Demande d'ouverture de Jarvis (raccourci de l'icône, widget).
+  VoidCallback? onJarvisRequested;
+
   /// Affiche un message à l'utilisateur (branché par l'UI).
   void Function(String message, {bool error})? onMessage;
 
@@ -178,6 +181,46 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  Future<void> setPosition(Device d, int position) async {
+    busy.add(d.key);
+    notifyListeners();
+    try {
+      await controller.setPosition(data, d, position);
+    } on Exception catch (e) {
+      onMessage?.call(e.toString(), error: true);
+    } finally {
+      busy.remove(d.key);
+      notifyListeners();
+    }
+  }
+
+  /// Exécute une commande sur plusieurs équipements en parallèle (Jarvis).
+  /// Renvoie les erreurs éventuelles.
+  Future<List<String>> runOn(List<Device> devices, DeviceAction action, {int? position}) async {
+    final errors = <String>[];
+    busy.addAll(devices.map((d) => d.key));
+    notifyListeners();
+    await Future.wait(devices.map((d) async {
+      try {
+        if (position != null) {
+          await controller.setPosition(data, d, position);
+        } else {
+          await controller.command(data, d, action);
+        }
+      } on Exception catch (e) {
+        errors.add('${d.name} : $e');
+      }
+    }));
+    busy.removeAll(devices.map((d) => d.key));
+    notifyListeners();
+    return errors;
+  }
+
+  Future<void> saveSettings() async {
+    await Storage.save(data);
+    notifyListeners();
+  }
+
   Future<void> refreshStates() async {
     if (data.devices.isEmpty || refreshing) return;
     refreshing = true;
@@ -199,6 +242,10 @@ class AppState extends ChangeNotifier {
 
   void initQuickActions() {
     _quickActions.initialize((type) {
+      if (type == 'jarvis') {
+        onJarvisRequested?.call();
+        return;
+      }
       for (final s in data.shortcuts) {
         if (s.id == type) runShortcut(s);
       }
@@ -208,10 +255,10 @@ class AppState extends ChangeNotifier {
 
   Future<void> _publishQuickActions() async {
     try {
-      await _quickActions.setShortcutItems(data.shortcuts
-          .take(4)
-          .map((s) => ShortcutItem(type: s.id, localizedTitle: s.label))
-          .toList());
+      await _quickActions.setShortcutItems([
+        const ShortcutItem(type: 'jarvis', localizedTitle: 'Parler à Jarvis'),
+        ...data.shortcuts.take(3).map((s) => ShortcutItem(type: s.id, localizedTitle: s.label)),
+      ]);
     } on Exception {
       // Non disponible (tests, plateforme non supportée).
     }

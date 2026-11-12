@@ -40,6 +40,9 @@ dependencies:
   flutter_secure_storage: ^11.2.0
   home_widget: ^0.10.0
   quick_actions: ^1.1.1
+  speech_to_text: ^7.5.0
+  flutter_tts: ^4.2.5
+  porcupine_flutter: ^4.0.0
 
 dev_dependencies:
   flutter_test:
@@ -93,3 +96,23 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+  fonts:
+    - family: Orbitron
+      fonts:
+        - asset: assets/fonts/Orbitron_500Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Orbitron_700Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Orbitron_900Black.ttf
+          weight: 900
+    - family: Rajdhani
+      fonts:
+        - asset: assets/fonts/Rajdhani_400Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Rajdhani_500Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Rajdhani_600SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Rajdhani_700Bold.ttf
+          weight: 700

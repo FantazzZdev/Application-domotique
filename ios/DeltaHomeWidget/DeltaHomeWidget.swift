@@ -202,7 +202,7 @@ struct DeltaHomeButtonWidget: Widget {
       ButtonWidgetView(entry: entry)
         .containerBackground(.fill.tertiary, for: .widget)
     }
-    .configurationDisplayName("Bouton DeltaHome")
+    .configurationDisplayName("Bouton Jarvis")
     .description("Un bouton pour une action : ouvrir le portail, fermer les volets…")
     .supportedFamilies([.systemSmall, .accessoryCircular])
   }
@@ -263,9 +263,52 @@ struct DeltaHomeShortcutsWidget: Widget {
       ShortcutsWidgetView(entry: entry)
         .containerBackground(.fill.tertiary, for: .widget)
     }
-    .configurationDisplayName("Raccourcis DeltaHome")
+    .configurationDisplayName("Protocoles Jarvis")
     .description("Vos 4 premiers raccourcis, en un tap.")
     .supportedFamilies([.systemSmall, .systemMedium])
+  }
+}
+
+// MARK: - Widget « Jarvis » (ouvre l'app en écoute)
+
+struct JarvisEntry: TimelineEntry { let date: Date }
+
+struct JarvisProvider: TimelineProvider {
+  func placeholder(in context: Context) -> JarvisEntry { JarvisEntry(date: .now) }
+  func getSnapshot(in context: Context, completion: @escaping (JarvisEntry) -> Void) {
+    completion(JarvisEntry(date: .now))
+  }
+  func getTimeline(in context: Context, completion: @escaping (Timeline<JarvisEntry>) -> Void) {
+    completion(Timeline(entries: [JarvisEntry(date: .now)], policy: .never))
+  }
+}
+
+struct JarvisWidgetView: View {
+  @Environment(\.widgetFamily) var family
+  var body: some View {
+    Group {
+      if family == .accessoryCircular {
+        ZStack {
+          AccessoryWidgetBackground()
+          Image(systemName: "waveform.circle.fill").font(.title)
+        }
+      } else {
+        Image("Reactor").resizable().scaledToFit().padding(8)
+      }
+    }
+    .widgetURL(URL(string: "deltahome://jarvis?homeWidget"))
+  }
+}
+
+struct JarvisWidget: Widget {
+  var body: some WidgetConfiguration {
+    StaticConfiguration(kind: "JarvisWidget", provider: JarvisProvider()) { _ in
+      JarvisWidgetView()
+        .containerBackground(Color(red: 0.01, green: 0.03, blue: 0.05), for: .widget)
+    }
+    .configurationDisplayName("Jarvis")
+    .description("Touchez le réacteur pour parler à Jarvis.")
+    .supportedFamilies([.systemSmall, .accessoryCircular])
   }
 }
 
@@ -274,6 +317,7 @@ struct DeltaHomeShortcutsWidget: Widget {
 @main
 struct DeltaHomeWidgets: WidgetBundle {
   var body: some Widget {
+    JarvisWidget()
     DeltaHomeButtonWidget()
     DeltaHomeShortcutsWidget()
   }

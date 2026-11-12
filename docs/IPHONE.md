@@ -31,6 +31,7 @@ open ios/Runner.xcworkspace
 2. Xcode crée un dossier `DeltaHomeWidget` : **supprimez les fichiers .swift générés**
    (Move to Trash) puis glissez à la place `ios/DeltaHomeWidget/DeltaHomeWidget.swift`
    (cible **DeltaHomeWidget** cochée).
+   Glissez aussi `ios/DeltaHomeWidget/Assets.xcassets` (image du réacteur) dans la cible **DeltaHomeWidget**.
 3. Sélectionnez `Runner/BackgroundIntent.swift` → panneau de droite *Target Membership* →
    cochez **aussi DeltaHomeWidget**.
 4. Cible **DeltaHomeWidget** :
