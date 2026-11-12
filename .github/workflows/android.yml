@@ -36,7 +36,8 @@ jobs:
             if keytool -list -keystore "$RUNNER_TEMP/domus.p12" -storetype PKCS12 -storepass "$PW" -alias domus > /dev/null; then
               echo "Clé de signature valide."
             else
-              echo "::error::Clé illisible : vérifiez les secrets DOMUS_KEYSTORE_B64 et DOMUS_KEYSTORE_PASSWORD."
+              B64LEN=$(printf '%s' "$DOMUS_KEYSTORE_B64" | tr -d ' \r\n\t' | wc -c)
+              echo "::error::Clé illisible. Longueurs reçues : DOMUS_KEYSTORE_B64 = $B64LEN caractères (3528 attendus), DOMUS_KEYSTORE_PASSWORD = ${#PW} caractères (24 attendus)."
               exit 1
             fi
             echo "DOMUS_KEYSTORE_PATH=$RUNNER_TEMP/domus.p12" >> "$GITHUB_ENV"
