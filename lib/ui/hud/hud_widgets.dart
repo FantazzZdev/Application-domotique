@@ -31,11 +31,11 @@ class _GridPainter extends CustomPainter {
     canvas.drawRect(
       rect,
       Paint()
-        ..shader = const RadialGradient(
-          center: Alignment(0, -0.6),
+        ..shader = RadialGradient(
+          center: const Alignment(0, -0.6),
           radius: 1.2,
-          colors: [Color(0xFF0B2233), Hud.bg2, Hud.bg],
-          stops: [0, 0.5, 1],
+          colors: [Color.lerp(Hud.bg2, Hud.cyan, Hud.isLight ? 0.04 : 0.08)!, Hud.bg2, Hud.bg],
+          stops: const [0, 0.5, 1],
         ).createShader(rect),
     );
     // Trame très discrète.
@@ -61,14 +61,15 @@ class HudPanel extends StatelessWidget {
     super.key,
     required this.child,
     this.title,
-    this.accent = Hud.cyan,
+    Color? accent,
     this.trailing,
     this.padding = const EdgeInsets.fromLTRB(16, 14, 16, 16),
-  });
+  }) : accentColor = accent;
 
   final Widget child;
   final String? title;
-  final Color accent;
+  final Color? accentColor;
+  Color get accent => accentColor ?? Hud.cyan;
   final Widget? trailing;
   final EdgeInsets padding;
 
@@ -80,7 +81,7 @@ class HudPanel extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color.lerp(Hud.bg2, accent, 0.07)!, const Color(0xFF07131D)],
+          colors: [Color.lerp(Hud.bg2, accent, Hud.isLight ? 0.05 : 0.07)!, Color.lerp(Hud.bg2, Hud.bg, Hud.isLight ? 0.0 : 0.6)!],
         ),
         border: Border.all(color: accent.withValues(alpha: 0.18)),
         boxShadow: [BoxShadow(color: accent.withValues(alpha: 0.05), blurRadius: 24, spreadRadius: -4)],
@@ -138,9 +139,10 @@ Path chamfer(Rect r, double c) => Path()
 enum ReactorMode { idle, listening, thinking, speaking }
 
 class ArcReactor extends StatefulWidget {
-  const ArcReactor({super.key, required this.mode, this.level = 0, this.size = 230, this.color = Hud.cyan});
+  const ArcReactor({super.key, required this.mode, this.level = 0, this.size = 230, Color? color}) : colorOverride = color;
   final ReactorMode mode;
-  final Color color;
+  final Color? colorOverride;
+  Color get color => colorOverride ?? Hud.cyan;
   final double level;
   final double size;
 
@@ -305,16 +307,17 @@ class ShutterSlider extends StatefulWidget {
     required this.label,
     required this.onChanged,
     this.busy = false,
-    this.accent = Hud.cyan,
+    Color? accent,
     this.height = 170,
-  });
+  }) : accentColor = accent;
 
   /// 0 = fermé, 100 = ouvert. Null = inconnu.
   final double? value;
   final String label;
   final ValueChanged<int> onChanged;
   final bool busy;
-  final Color accent;
+  final Color? accentColor;
+  Color get accent => accentColor ?? Hud.cyan;
   final double height;
 
   @override
@@ -465,15 +468,16 @@ class HoldActivator extends StatefulWidget {
     required this.onActivate,
     this.icon = Icons.fence,
     this.busy = false,
-    this.accent = Hud.cyan,
+    Color? accent,
     this.size = 120,
-  });
+  }) : accentColor = accent;
 
   final String label;
   final VoidCallback onActivate;
   final IconData icon;
   final bool busy;
-  final Color accent;
+  final Color? accentColor;
+  Color get accent => accentColor ?? Hud.cyan;
   final double size;
 
   @override
@@ -704,9 +708,9 @@ class ProtocolTile extends StatelessWidget {
                   boxShadow: [BoxShadow(color: (busy ? Hud.amber : accent).withValues(alpha: 0.45), blurRadius: 14)],
                 ),
                 child: busy
-                    ? const Padding(
-                        padding: EdgeInsets.all(10),
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Hud.bg),
+                    ? Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Hud.isLight ? Colors.white : Hud.bg),
                       )
                     : Icon(icon, size: 22, color: Hud.bg),
               ),
@@ -737,9 +741,9 @@ class ShutterRow extends StatefulWidget {
     required this.onChanged,
     this.onStep,
     this.busy = false,
-    this.accent = Hud.cyan,
+    Color? accent,
     this.icon = Icons.roller_shades,
-  });
+  }) : accentColor = accent;
 
   final double? value; // 0 fermé … 100 ouvert
   final String label;
@@ -748,7 +752,8 @@ class ShutterRow extends StatefulWidget {
   /// Ouvrir (true) / fermer (false) d'un coup.
   final ValueChanged<bool>? onStep;
   final bool busy;
-  final Color accent;
+  final Color? accentColor;
+  Color get accent => accentColor ?? Hud.cyan;
   final IconData icon;
 
   @override

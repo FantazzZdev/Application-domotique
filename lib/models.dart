@@ -314,7 +314,7 @@ class AssistantSettings {
 
 /// Tout ce qui est persisté.
 class AppData {
-  AppData({List<Account>? accounts, List<Device>? devices, List<Shortcut>? shortcuts, AssistantSettings? assistant})
+  AppData({List<Account>? accounts, List<Device>? devices, List<Shortcut>? shortcuts, AssistantSettings? assistant, this.theme = 'holo'})
       : accounts = accounts ?? [],
         devices = devices ?? [],
         shortcuts = shortcuts ?? [],
@@ -325,11 +325,15 @@ class AppData {
   final List<Shortcut> shortcuts;
   final AssistantSettings assistant;
 
+  /// Thème de l'interface (« classique », « holo », « armure »…).
+  String theme;
+
   String encode() => jsonEncode({
         'accounts': accounts.map((a) => a.toJson()).toList(),
         'devices': devices.map((d) => d.toJson()).toList(),
         'shortcuts': shortcuts.map((s) => s.toJson()).toList(),
         'assistant': assistant.toJson(),
+        'theme': theme,
       });
 
   factory AppData.decode(String? raw) {
@@ -341,6 +345,7 @@ class AppData {
       accounts: list('accounts').map(Account.fromJson).toList(),
       devices: list('devices').map(Device.fromJson).toList(),
       shortcuts: list('shortcuts').map(Shortcut.fromJson).toList(),
+      theme: (j['theme'] as String?) ?? 'holo',
       assistant: AssistantSettings.fromJson(
           j['assistant'] == null ? null : Map<String, dynamic>.from(j['assistant'] as Map)),
     );

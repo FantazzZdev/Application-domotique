@@ -216,6 +216,12 @@ class AppState extends ChangeNotifier {
     return errors;
   }
 
+  Future<void> setTheme(String id) async {
+    data.theme = id;
+    await Storage.save(data);
+    notifyListeners();
+  }
+
   Future<void> saveSettings() async {
     await Storage.save(data);
     await _publishQuickActions();

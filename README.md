@@ -20,6 +20,8 @@ ou par des **boutons sur l'écran d'accueil** du téléphone.
 - **Voix ElevenLabs (option)** : voix ultra réalistes avec votre propre compte ElevenLabs
   (clé API dans *Menu → Assistant*), une voix pour Orion et une pour Nova, phrases mises en
   cache pour économiser les crédits, repli automatique sur la voix intégrée sans Internet.
+- **Thèmes** (*Menu → Apparence*) : Classique (suit le mode clair / sombre du téléphone),
+  Holo, Armure (rouge et or), Néon, Terminal, Cosmos et Glacier (clair). Changement instantané.
 - **Interface HUD** futuriste : réacteur animé qui réagit à la voix, curseurs verticaux
   pour régler chaque volet (et « Tous »), « maintenir pour activer » pour portail et garage.
 

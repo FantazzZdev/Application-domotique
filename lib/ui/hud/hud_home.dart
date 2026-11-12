@@ -12,6 +12,7 @@ import '../shortcut_editor.dart';
 import 'hud_theme.dart';
 import 'hud_widgets.dart';
 import 'assistant_settings_page.dart';
+import 'theme_page.dart';
 
 class HudHome extends StatefulWidget {
   const HudHome({super.key, required this.state, required this.assistant});
@@ -82,7 +83,7 @@ class _HudHomeState extends State<HudHome> {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: Hud.isLight ? SystemUiOverlayStyle.dark : SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: Hud.bg,
         body: HudBackground(
@@ -149,7 +150,7 @@ class _HudHomeState extends State<HudHome> {
       ]),
       const SizedBox(width: 4),
       PopupMenuButton<String>(
-        icon: const Icon(Icons.more_vert_rounded, color: Hud.cyan),
+        icon: Icon(Icons.more_vert_rounded, color: Hud.cyan),
         color: Hud.bg2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         onSelected: (v) {
@@ -158,6 +159,8 @@ class _HudHomeState extends State<HudHome> {
               _push(AssistantSettingsPage(state: s, assistant: j));
             case 'accounts':
               _push(AccountsPage(state: s));
+            case 'theme':
+              _push(ThemePage(state: s));
             case 'protocol':
               showShortcutEditor(context, s);
             case 'type':
@@ -166,6 +169,7 @@ class _HudHomeState extends State<HudHome> {
         },
         itemBuilder: (_) => [
           _menu('assistant', Icons.record_voice_over_outlined, 'Assistant et voix'),
+          _menu('theme', Icons.palette_outlined, 'Apparence (thèmes)'),
           _menu('accounts', Icons.home_work_outlined, 'Maisons (comptes Delta Dore)'),
           _menu('protocol', Icons.add_circle_outline, 'Nouveau raccourci'),
           _menu('type', Icons.keyboard_outlined, 'Écrire une commande'),

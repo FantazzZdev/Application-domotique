@@ -76,15 +76,48 @@ class _DeltaHomeAppState extends State<DeltaHomeApp> with WidgetsBindingObserver
     }
   }
 
+  HudPalette? _palette;
+
+  /// Mode clair / sombre du téléphone changé : le thème « Classique » suit.
+  @override
+  void didChangePlatformBrightness() => setState(() {});
+
+  /// Les couleurs du thème sont lues partout dans l'interface : quand le thème
+  /// change, on reconstruit tout l'arbre (sans perdre la page ouverte).
+  void _rebuildAll() {
+    void visit(Element e) {
+      e.markNeedsBuild();
+      e.visitChildren(visit);
+    }
+
+    (context as Element).visitChildren(visit);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Domus',
-      debugShowCheckedModeBanner: false,
-      theme: Hud.theme(),
-      darkTheme: Hud.theme(),
-      themeMode: ThemeMode.dark,
-      home: HudHome(state: widget.state, assistant: widget.assistant),
+    return ListenableBuilder(
+      listenable: widget.state,
+      builder: (context, _) {
+        final system = WidgetsBinding.instance.platformDispatcher.platformBrightness;
+        final palette = HudThemes.resolve(widget.state.data.theme, system);
+        if (!identical(palette, _palette)) {
+          final first = _palette == null;
+          _palette = palette;
+          Hud.apply(palette);
+          if (!first) WidgetsBinding.instance.addPostFrameCallback((_) => _rebuildAll());
+        }
+        final theme = Hud.theme();
+        return MaterialApp(
+          title: 'Domus',
+          debugShowCheckedModeBanner: false,
+          theme: theme,
+          darkTheme: theme,
+          themeMode: palette.brightness == Brightness.light ? ThemeMode.light : ThemeMode.dark,
+          themeAnimationDuration: const Duration(milliseconds: 450),
+          themeAnimationCurve: Curves.easeOutCubic,
+          home: HudHome(state: widget.state, assistant: widget.assistant),
+        );
+      },
     );
   }
 }
