@@ -72,42 +72,69 @@ class TydomClient {
     return _connecting ??= _doConnect().whenComplete(() => _connecting = null);
   }
 
+  /// Realm qui a fonctionné pour chaque box (évite de retester à chaque fois).
+  static final Map<String, String> _workingRealm = {};
+
   Future<void> _doConnect() async {
-    final nonce = await _fetchNonce();
-    final auth = buildDigestHeader(
+    // Le realm attendu diffère selon les versions du service de médiation :
+    // on prend celui annoncé par le serveur, puis les valeurs connues.
+    final first = await _fetchChallenge();
+    final realms = <String>{
+      ?_workingRealm[mac],
+      ?first.realm,
+      'ServiceMedia',
+      'protected area',
+    }.toList();
+    var challenge = first;
+    for (var i = 0; i < realms.length; i++) {
+      if (i > 0) challenge = await _fetchChallenge();
+      try {
+        final ws = await WebSocket.connect(
+          'wss://$host:443$_path',
+          headers: {'Authorization': _authorization(challenge, realms[i])},
+        ).timeout(const Duration(seconds: 15));
+        _workingRealm[mac] = realms[i];
+        ws.pingInterval = const Duration(seconds: 20);
+        _ws = ws;
+        ws.listen(
+          _onData,
+          onDone: _onClosed,
+          onError: (_) => _onClosed(),
+          cancelOnError: true,
+        );
+        return;
+      } on WebSocketException {
+        continue; // realm suivant
+      } on TimeoutException {
+        throw TydomException('La box ne répond pas (délai dépassé).');
+      } on SocketException catch (e) {
+        throw TydomException('Pas de connexion réseau (${e.message}).');
+      }
+    }
+    // Échec : on refait la requête "à la main" pour connaître la réponse exacte.
+    final c = await _fetchChallenge();
+    final status = await _probe(_authorization(c, realms.first));
+    throw TydomException('La box a refusé la connexion ($status, '
+        'realm annoncé : ${first.realm ?? 'aucun'}). '
+        'Vérifiez l\'adresse MAC de la box.');
+  }
+
+  String _authorization(_Challenge c, String realm) {
+    var header = buildDigestHeader(
       username: mac.toUpperCase(),
       password: password,
-      realm: 'protected area',
-      nonce: nonce,
+      realm: realm,
+      nonce: c.nonce,
       method: 'GET',
       uri: _path,
     );
-    try {
-      final ws = await WebSocket.connect(
-        'wss://$host:443$_path',
-        headers: {'Authorization': auth},
-      ).timeout(const Duration(seconds: 15));
-      ws.pingInterval = const Duration(seconds: 20);
-      _ws = ws;
-      ws.listen(
-        _onData,
-        onDone: _onClosed,
-        onError: (_) => _onClosed(),
-        cancelOnError: true,
-      );
-    } on WebSocketException catch (e) {
-      throw TydomException('Connexion à la box refusée (${e.message}). '
-          'Vérifiez l\'adresse MAC et le mot de passe de la box.');
-    } on TimeoutException {
-      throw TydomException('La box ne répond pas (délai dépassé).');
-    } on SocketException catch (e) {
-      throw TydomException('Pas de connexion réseau (${e.message}).');
-    }
+    if (c.opaque != null) header += ', opaque="${c.opaque}"';
+    return header;
   }
 
-  /// Première requête sans authentification : le serveur répond 401 avec le
-  /// "nonce" nécessaire au calcul du Digest.
-  Future<String> _fetchNonce() async {
+  /// Envoie une requête d'upgrade WebSocket brute et renvoie l'en-tête HTTP
+  /// reçu (ligne de statut + en-têtes).
+  Future<String> _rawUpgrade({String? authorization}) async {
     SecureSocket? socket;
     try {
       socket = await SecureSocket.connect(host, 443, timeout: const Duration(seconds: 15));
@@ -118,27 +145,44 @@ class TydomClient {
           'Upgrade: websocket\r\n'
           'Sec-WebSocket-Key: ${_wsKey()}\r\n'
           'Sec-WebSocket-Version: 13\r\n'
+          '${authorization == null ? '' : 'Authorization: $authorization\r\n'}'
           '\r\n');
       await socket.flush();
       final buffer = <int>[];
       await for (final chunk in socket.timeout(const Duration(seconds: 15))) {
         buffer.addAll(chunk);
-        final s = latin1.decode(buffer);
-        if (s.contains('\r\n\r\n')) break;
+        if (latin1.decode(buffer).contains('\r\n\r\n')) break;
       }
       final head = latin1.decode(buffer);
-      final match = RegExp(r'nonce="([^"]+)"', caseSensitive: false).firstMatch(head);
-      if (match == null) {
-        final statusLine = head.split('\r\n').first;
-        throw TydomException('Réponse inattendue du serveur Tydom : $statusLine');
-      }
-      return match.group(1)!;
+      final end = head.indexOf('\r\n\r\n');
+      return end < 0 ? head : head.substring(0, end);
     } on SocketException catch (e) {
       throw TydomException('Impossible de joindre $host (${e.message}).');
     } on TimeoutException {
       throw TydomException('Le serveur Tydom ne répond pas.');
     } finally {
       socket?.destroy();
+    }
+  }
+
+  /// Première requête sans authentification : le serveur répond 401 avec le
+  /// défi Digest (nonce, realm…).
+  Future<_Challenge> _fetchChallenge() async {
+    final head = await _rawUpgrade();
+    String? param(String name) =>
+        RegExp('$name="([^"]*)"', caseSensitive: false).firstMatch(head)?.group(1);
+    final nonce = param('nonce');
+    if (nonce == null) {
+      throw TydomException('Réponse inattendue du serveur Tydom : ${head.split('\r\n').first}');
+    }
+    return _Challenge(nonce: nonce, realm: param('realm'), opaque: param('opaque'));
+  }
+
+  Future<String> _probe(String authorization) async {
+    try {
+      return (await _rawUpgrade(authorization: authorization)).split('\r\n').first;
+    } on TydomException catch (e) {
+      return e.message;
     }
   }
 
@@ -222,4 +266,11 @@ class TydomClient {
     _ws = null;
     await ws?.close();
   }
+}
+
+class _Challenge {
+  _Challenge({required this.nonce, this.realm, this.opaque});
+  final String nonce;
+  final String? realm;
+  final String? opaque;
 }
