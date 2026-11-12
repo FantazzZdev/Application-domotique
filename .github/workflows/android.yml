@@ -25,9 +25,13 @@ jobs:
       # s'installent comme des mises à jour, sans désinstaller.
       - name: Préparer la clé de signature
         env:
-          DOMUS_KEYSTORE_B64: ${{ secrets.DOMUS_KEYSTORE_B64 }}
+          # La clé est coupée en deux secrets (un téléphone ne copie que
+          # 2 000 caractères à la fois) : on les recolle.
+          DOMUS_KEYSTORE_B64_1: ${{ secrets.DOMUS_KEYSTORE_B64 }}
+          DOMUS_KEYSTORE_B64_2: ${{ secrets.DOMUS_KEYSTORE_B64_2 }}
           DOMUS_KEYSTORE_PASSWORD: ${{ secrets.DOMUS_KEYSTORE_PASSWORD }}
         run: |
+          DOMUS_KEYSTORE_B64="${DOMUS_KEYSTORE_B64_1}${DOMUS_KEYSTORE_B64_2}"
           if [ -n "$DOMUS_KEYSTORE_B64" ]; then
             # Tolère espaces et retours à la ligne ajoutés au copier-coller.
             printf '%s' "$DOMUS_KEYSTORE_B64" | tr -d ' \r\n\t' | base64 -d > "$RUNNER_TEMP/domus.p12"
@@ -36,8 +40,9 @@ jobs:
             if keytool -list -keystore "$RUNNER_TEMP/domus.p12" -storetype PKCS12 -storepass "$PW" -alias domus > /dev/null; then
               echo "Clé de signature valide."
             else
-              B64LEN=$(printf '%s' "$DOMUS_KEYSTORE_B64" | tr -d ' \r\n\t' | wc -c)
-              echo "::error::Clé illisible. Longueurs reçues : DOMUS_KEYSTORE_B64 = $B64LEN caractères (3528 attendus), DOMUS_KEYSTORE_PASSWORD = ${#PW} caractères (24 attendus)."
+              L1=$(printf '%s' "$DOMUS_KEYSTORE_B64_1" | tr -d ' \r\n\t' | wc -c)
+              L2=$(printf '%s' "$DOMUS_KEYSTORE_B64_2" | tr -d ' \r\n\t' | wc -c)
+              echo "::error::Clé illisible. Longueurs reçues : DOMUS_KEYSTORE_B64 = $L1 (1764 attendus), DOMUS_KEYSTORE_B64_2 = $L2 (1764 attendus), DOMUS_KEYSTORE_PASSWORD = ${#PW} (24 attendus)."
               exit 1
             fi
             echo "DOMUS_KEYSTORE_PATH=$RUNNER_TEMP/domus.p12" >> "$GITHUB_ENV"
