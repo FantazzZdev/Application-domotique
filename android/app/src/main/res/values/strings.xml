@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">DeltaHome</string>
+    <string name="widget_shortcuts_label">Raccourcis DeltaHome</string>
+    <string name="widget_shortcuts_desc">Vos 4 premiers raccourcis : volets, portail…</string>
+    <string name="widget_button_label">Bouton DeltaHome</string>
+    <string name="widget_button_desc">Un bouton pour une action : ouvrir le portail, fermer les volets…</string>
+    <string name="widget_empty">Créez des raccourcis dans DeltaHome</string>
+    <string name="widget_pick">Choisir l\'action du bouton</string>
+</resources>
