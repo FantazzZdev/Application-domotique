@@ -202,6 +202,12 @@ class AssistantSettings {
     this.voice = true,
     this.neuralVoice = '',
     this.aiEffect = 0.45,
+    this.elevenKey = '',
+    this.elevenVoiceOrion = '',
+    this.elevenVoiceNova = '',
+    this.elevenNameOrion = '',
+    this.elevenNameNova = '',
+    this.elevenQuality = false,
   });
 
   Persona persona;
@@ -229,6 +235,28 @@ class AssistantSettings {
   /// Intensité de l'effet « IA » sur la voix intégrée (0 à 1).
   double aiEffect;
 
+  /// ElevenLabs (neuralVoice == 'eleven') : clé API et voix choisies.
+  String elevenKey;
+  String elevenVoiceOrion;
+  String elevenVoiceNova;
+  String elevenNameOrion;
+  String elevenNameNova;
+
+  /// Modèle « qualité maximale » (plus lent, 2× plus de crédits).
+  bool elevenQuality;
+
+  String get elevenVoice => persona.male ? elevenVoiceOrion : elevenVoiceNova;
+  String get elevenName => persona.male ? elevenNameOrion : elevenNameNova;
+  void setElevenVoice(String id, String name) {
+    if (persona.male) {
+      elevenVoiceOrion = id;
+      elevenNameOrion = name;
+    } else {
+      elevenVoiceNova = id;
+      elevenNameNova = name;
+    }
+  }
+
   Map<String, dynamic> toJson() => {
         'persona': persona.name,
         'title': title,
@@ -240,6 +268,12 @@ class AssistantSettings {
         'voice': voice,
         'neuralVoice': neuralVoice,
         'aiEffect': aiEffect,
+        'elevenKey': elevenKey,
+        'elevenVoiceOrion': elevenVoiceOrion,
+        'elevenVoiceNova': elevenVoiceNova,
+        'elevenNameOrion': elevenNameOrion,
+        'elevenNameNova': elevenNameNova,
+        'elevenQuality': elevenQuality,
       };
 
   factory AssistantSettings.fromJson(Map<String, dynamic>? j) => j == null
@@ -255,6 +289,12 @@ class AssistantSettings {
           voice: (j['voice'] as bool?) ?? true,
           neuralVoice: (j['neuralVoice'] as String?) ?? '',
           aiEffect: (j['aiEffect'] as num?)?.toDouble() ?? 0.45,
+          elevenKey: (j['elevenKey'] as String?) ?? '',
+          elevenVoiceOrion: (j['elevenVoiceOrion'] as String?) ?? '',
+          elevenVoiceNova: (j['elevenVoiceNova'] as String?) ?? '',
+          elevenNameOrion: (j['elevenNameOrion'] as String?) ?? '',
+          elevenNameNova: (j['elevenNameNova'] as String?) ?? '',
+          elevenQuality: (j['elevenQuality'] as bool?) ?? false,
         );
 }
 

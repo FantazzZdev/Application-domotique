@@ -8,6 +8,7 @@ import 'package:speech_to_text/speech_to_text.dart';
 
 import '../app_state.dart';
 import '../models.dart';
+import 'eleven_labs.dart';
 import 'intent_parser.dart';
 import 'neural_voice.dart';
 
@@ -28,6 +29,7 @@ class Assistant extends ChangeNotifier {
   final SpeechToText _stt = SpeechToText();
   final FlutterTts _tts = FlutterTts();
   final NeuralVoiceEngine neural = NeuralVoiceEngine();
+  final ElevenLabs eleven = ElevenLabs();
 
   /// Erreur liée aux voix IA (téléchargement…).
   String? voiceError;
@@ -465,9 +467,49 @@ class Assistant extends ChangeNotifier {
     return await neural.isInstalled(v.model) ? v : null;
   }
 
+  bool get elevenReady =>
+      settings.neuralVoice == 'eleven' && settings.elevenKey.trim().isNotEmpty && settings.elevenVoice.isNotEmpty;
+
+  Future<bool> _sayEleven(String text) async {
+    if (!elevenReady) return false;
+    try {
+      await _tts.stop();
+      final f = await eleven.speech(
+        settings.elevenKey,
+        settings.elevenVoice,
+        text,
+        model: settings.elevenQuality ? ElevenLabs.qualityModel : ElevenLabs.flashModel,
+        speed: 0.5 + settings.speechRate,
+      );
+      voiceError = null;
+      await neural.play(f, deleteAfter: false);
+      return true;
+    } on Exception catch (e) {
+      // Pas d'Internet, quota atteint… : repli sur la voix intégrée.
+      voiceError = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> _sayNeural(String text) async {
-    final v = await activeNeuralVoice();
+    final v = await _fallbackNeuralVoice();
     if (v == null) return false;
+    return _speakNeural(v, text);
+  }
+
+  /// Voix IA intégrée à utiliser : celle choisie, ou en secours (ElevenLabs
+  /// injoignable) n'importe quelle voix installée du bon genre.
+  Future<NeuralVoiceOption?> _fallbackNeuralVoice() async {
+    final chosen = await activeNeuralVoice();
+    if (chosen != null || settings.neuralVoice != 'eleven') return chosen;
+    for (final v in neuralVoices.where((v) => v.male == settings.persona.male)) {
+      if (await neural.isInstalled(v.model)) return v;
+    }
+    return null;
+  }
+
+  Future<bool> _speakNeural(NeuralVoiceOption v, String text) async {
     try {
       await _tts.stop();
       final f = await neural.synthesize(v, text,
@@ -521,6 +563,7 @@ class Assistant extends ChangeNotifier {
       await Future<void>.delayed(const Duration(milliseconds: 900));
       return;
     }
+    if (await _sayEleven(text)) return;
     if (await _sayNeural(text)) return;
     await _initTts();
     try {

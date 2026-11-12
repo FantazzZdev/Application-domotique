@@ -145,7 +145,7 @@ class NeuralVoiceEngine {
   }
 
   /// Lit un fichier et attend la fin de la lecture.
-  Future<void> play(File f) async {
+  Future<void> play(File f, {bool deleteAfter = true}) async {
     final done = _player.onPlayerComplete.first;
     await _player.play(DeviceFileSource(f.path));
     try {
@@ -153,6 +153,7 @@ class NeuralVoiceEngine {
     } on TimeoutException {
       // sécurité
     }
+    if (!deleteAfter) return;
     try {
       f.deleteSync();
     } on FileSystemException {

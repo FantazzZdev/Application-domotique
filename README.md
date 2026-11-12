@@ -17,6 +17,9 @@ ou par des **boutons sur l'écran d'accueil** du téléphone.
 - **Voix IA intégrées** : voix neuronales (Piper) générées sur le téléphone, sans Internet
   ni compte : *Pierre* pour Orion, *Siwis* ou *Jessica* pour Nova, avec un effet « IA » réglable.
   Téléchargement unique (67 à 80 Mo) au premier choix ; la voix du téléphone reste disponible.
+- **Voix ElevenLabs (option)** : voix ultra réalistes avec votre propre compte ElevenLabs
+  (clé API dans *Menu → Assistant*), une voix pour Orion et une pour Nova, phrases mises en
+  cache pour économiser les crédits, repli automatique sur la voix intégrée sans Internet.
 - **Interface HUD** futuriste : réacteur animé qui réagit à la voix, curseurs verticaux
   pour régler chaque volet (et « Tous »), « maintenir pour activer » pour portail et garage.
 

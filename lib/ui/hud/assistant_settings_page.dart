@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../assistant/eleven_labs.dart';
 import '../../assistant/neural_voice.dart';
 
 import '../../app_state.dart';
@@ -23,6 +24,12 @@ class _AssistantSettingsPageState extends State<AssistantSettingsPage> {
   List<Map<String, String>> _voices = [];
 
   final Map<String, bool> _installed = {};
+  late final _elevenKey = TextEditingController(text: settings.elevenKey);
+  bool _elevenObscure = true;
+  bool _elevenLoading = false;
+  String? _elevenError;
+  List<ElevenVoice> _elevenVoices = [];
+  (int, int)? _elevenQuota;
   int _lastDownloads = 0;
 
   @override
@@ -33,6 +40,7 @@ class _AssistantSettingsPageState extends State<AssistantSettingsPage> {
     });
     _refreshInstalled();
     widget.assistant.addListener(_onAssistant);
+    if (settings.neuralVoice == 'eleven' && settings.elevenKey.isNotEmpty) _loadElevenVoices();
   }
 
   void _onAssistant() {
@@ -52,6 +60,7 @@ class _AssistantSettingsPageState extends State<AssistantSettingsPage> {
   void dispose() {
     widget.assistant.removeListener(_onAssistant);
     _title.dispose();
+    _elevenKey.dispose();
     super.dispose();
   }
 
@@ -190,6 +199,7 @@ class _AssistantSettingsPageState extends State<AssistantSettingsPage> {
     final a = widget.assistant;
     final options = neuralVoices.where((v) => v.male == settings.persona.male).toList();
     final usingNeural = options.any((v) => v.id == settings.neuralVoice && (_installed[v.model.id] ?? false));
+    final usingEleven = settings.neuralVoice == 'eleven';
     return HudPanel(
       title: 'Voix de ${settings.persona.displayName}',
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -201,7 +211,20 @@ class _AssistantSettingsPageState extends State<AssistantSettingsPage> {
         const SizedBox(height: 8),
         for (final v in options) _neuralTile(v),
         _choice(
-          selected: !usingNeural,
+          selected: usingEleven,
+          title: 'ElevenLabs (ultra réaliste)',
+          subtitle: settings.elevenName.isNotEmpty
+              ? 'Voix : ${settings.elevenName} - Internet requis'
+              : 'Votre compte ElevenLabs - Internet requis',
+          onTap: () {
+            settings.neuralVoice = 'eleven';
+            _save();
+            if (settings.elevenKey.isNotEmpty && _elevenVoices.isEmpty) _loadElevenVoices();
+          },
+        ),
+        if (usingEleven) _elevenBlock(),
+        _choice(
+          selected: !usingNeural && !usingEleven,
           title: 'Voix du téléphone',
           subtitle: 'Synthèse vocale standard d\'Android / iOS',
           onTap: () {
@@ -209,7 +232,7 @@ class _AssistantSettingsPageState extends State<AssistantSettingsPage> {
             _save();
           },
         ),
-        if (!usingNeural && _voices.isNotEmpty)
+        if (!usingNeural && !usingEleven && _voices.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: DropdownButtonFormField<String>(
@@ -240,13 +263,128 @@ class _AssistantSettingsPageState extends State<AssistantSettingsPage> {
         _slider('Débit', settings.speechRate, 0.2, 0.9, (v) => settings.speechRate = v),
         if (usingNeural)
           _slider('Effet IA', settings.aiEffect, 0, 1, (v) => settings.aiEffect = v)
-        else
+        else if (!usingEleven)
           _slider('Hauteur', settings.pitch, 0.5, 1.5, (v) => settings.pitch = v),
         const SizedBox(height: 8),
         OutlinedButton.icon(
           onPressed: () => a.say(a.lines.greeting()),
           icon: const Icon(Icons.volume_up_outlined),
           label: const Text('Tester la voix'),
+        ),
+      ]),
+    );
+  }
+
+  Future<void> _loadElevenVoices() async {
+    final key = _elevenKey.text.trim();
+    if (key.isEmpty) {
+      setState(() => _elevenError = 'Collez d\'abord votre clé API.');
+      return;
+    }
+    settings.elevenKey = key;
+    await _save();
+    setState(() {
+      _elevenLoading = true;
+      _elevenError = null;
+    });
+    try {
+      final voices = await widget.assistant.eleven.voices(key);
+      final quota = await widget.assistant.eleven.quota(key);
+      if (!mounted) return;
+      setState(() {
+        _elevenVoices = voices;
+        _elevenQuota = quota;
+      });
+      // Première fois : une voix du bon genre par défaut.
+      if (settings.elevenVoice.isEmpty && voices.isNotEmpty) {
+        final wanted = settings.persona.male ? 'male' : 'female';
+        final v = voices.where((v) => v.gender == wanted).firstOrNull ?? voices.first;
+        settings.setElevenVoice(v.id, v.name);
+        await _save();
+      }
+    } on Exception catch (e) {
+      if (mounted) setState(() => _elevenError = e.toString());
+    } finally {
+      if (mounted) setState(() => _elevenLoading = false);
+    }
+  }
+
+  Widget _elevenBlock() {
+    final a = widget.assistant;
+    final current = _elevenVoices.any((v) => v.id == settings.elevenVoice) ? settings.elevenVoice : null;
+    return Padding(
+      padding: const EdgeInsets.only(left: 40, bottom: 8),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        TextField(
+          controller: _elevenKey,
+          obscureText: _elevenObscure,
+          style: Hud.bodyText(),
+          decoration: InputDecoration(
+            labelText: 'Clé API ElevenLabs',
+            suffixIcon: IconButton(
+              onPressed: () => setState(() => _elevenObscure = !_elevenObscure),
+              icon: Icon(_elevenObscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+            ),
+          ),
+          onSubmitted: (_) => _loadElevenVoices(),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: _elevenLoading ? null : _loadElevenVoices,
+          icon: _elevenLoading
+              ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.cloud_download_outlined),
+          label: Text(_elevenVoices.isEmpty ? 'Connecter et charger mes voix' : 'Actualiser mes voix'),
+        ),
+        if (_elevenError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(_elevenError!, style: Hud.bodyText(size: 13, color: Hud.red)),
+          ),
+        if (_elevenVoices.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            initialValue: current,
+            isExpanded: true,
+            decoration: InputDecoration(labelText: 'Voix de ${settings.persona.displayName}'),
+            items: [
+              for (final v in _elevenVoices)
+                DropdownMenuItem(
+                  value: v.id,
+                  child: Text(
+                    [v.name, if (v.gender.isNotEmpty) v.gender == 'male' ? 'homme' : v.gender == 'female' ? 'femme' : v.gender, if (v.description.isNotEmpty) v.description]
+                        .join(' - '),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+            ],
+            onChanged: (id) async {
+              final v = _elevenVoices.firstWhere((v) => v.id == id);
+              settings.setElevenVoice(v.id, v.name);
+              await _save();
+              await a.say(a.lines.identity());
+            },
+          ),
+        ],
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          value: settings.elevenQuality,
+          title: Text('Qualité maximale', style: Hud.bodyText()),
+          subtitle: Text('Plus lent et 2 fois plus de crédits', style: Hud.bodyText(size: 13, color: Hud.dim)),
+          onChanged: (v) {
+            settings.elevenQuality = v;
+            _save();
+          },
+        ),
+        if (_elevenQuota != null)
+          Text(
+            'Crédits utilisés ce mois-ci : ${_elevenQuota!.$1} / ${_elevenQuota!.$2}',
+            style: Hud.bodyText(size: 13, color: Hud.dim),
+          ),
+        Text(
+          'Les phrases déjà prononcées sont gardées en mémoire et ne consomment plus de crédits. '
+          'Sans Internet, la voix IA intégrée (ou celle du téléphone) prend le relais.',
+          style: Hud.bodyText(size: 12, color: Hud.dim),
         ),
       ]),
     );
