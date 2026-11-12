@@ -194,9 +194,8 @@ class AssistantSettings {
   AssistantSettings({
     this.persona = Persona.orion,
     this.title = '',
-    this.wakeWord = false,
-    this.picovoiceKey = '',
-    this.keywordPath = '',
+    this.handsFree = false,
+    this.muteBeeps = true,
     this.speechRate = 0.5,
     this.pitch = 1.0,
     this.voiceName = '',
@@ -208,12 +207,11 @@ class AssistantSettings {
   /// Comment l'assistant s'adresse à vous (« monsieur », un prénom…). Vide = rien.
   String title;
 
-  /// Écoute du mot d'activation quand l'app est ouverte (clé Picovoice requise).
-  bool wakeWord;
-  String picovoiceKey;
+  /// Mains libres : écoute du prénom de l'assistant quand l'app est ouverte.
+  bool handsFree;
 
-  /// Fichier .ppn du mot « Orion » / « Nova » créé sur la console Picovoice.
-  String keywordPath;
+  /// Coupe les bips de la reconnaissance vocale en mains libres (Android).
+  bool muteBeeps;
   double speechRate;
   double pitch;
 
@@ -226,9 +224,8 @@ class AssistantSettings {
   Map<String, dynamic> toJson() => {
         'persona': persona.name,
         'title': title,
-        'wakeWord': wakeWord,
-        'picovoiceKey': picovoiceKey,
-        'keywordPath': keywordPath,
+        'handsFree': handsFree,
+        'muteBeeps': muteBeeps,
         'speechRate': speechRate,
         'pitch': pitch,
         'voiceName': voiceName,
@@ -240,9 +237,8 @@ class AssistantSettings {
       : AssistantSettings(
           persona: Persona.values.asNameMap()[j['persona']] ?? Persona.orion,
           title: (j['title'] as String?) ?? '',
-          wakeWord: (j['wakeWord'] as bool?) ?? false,
-          picovoiceKey: (j['picovoiceKey'] as String?) ?? '',
-          keywordPath: (j['keywordPath'] as String?) ?? '',
+          handsFree: (j['handsFree'] as bool?) ?? false,
+          muteBeeps: (j['muteBeeps'] as bool?) ?? true,
           speechRate: (j['speechRate'] as num?)?.toDouble() ?? 0.5,
           pitch: (j['pitch'] as num?)?.toDouble() ?? 1.0,
           voiceName: (j['voiceName'] as String?) ?? '',

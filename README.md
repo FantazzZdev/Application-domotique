@@ -43,16 +43,12 @@ Ou en local : `flutter build apk --release` (Flutter 3.50+, SDK Android).
 Ajouter le widget : appui long sur l'écran d'accueil → *Widgets* → *Domus*
 (« Assistant vocal » pour parler, « Bouton Domus » et « Protocoles Domus »).
 
-### Mot d'activation « Orion » / « Nova » (facultatif)
+### Mains libres : « Orion… » / « Nova… » (facultatif)
 
-Pour lancer l'écoute en disant simplement le nom de l'assistant (app ouverte) :
-1. créez un compte gratuit sur [console.picovoice.ai](https://console.picovoice.ai/) et copiez votre *AccessKey* ;
-2. dans *Porcupine*, créez le mot « Orion » (ou « Nova ») et téléchargez le fichier `.ppn`
-   pour votre téléphone (Android ou iOS) ;
-3. dans l'app : *Menu → Assistant*, collez la clé et importez le fichier.
-
-La détection se fait sur le téléphone, rien n'est envoyé en ligne.
-Sans mot d'activation : touchez le réacteur, utilisez le widget « Assistant vocal » ou l'appui long sur l'icône de l'app.
+*Menu → Assistant → Mains libres* : quand l'app est ouverte, dites le nom de l'assistant puis votre
+demande, ou tout d'une traite (« Nova, ferme les volets »). Aucun compte ni clé : c'est la
+reconnaissance vocale du téléphone qui écoute. Le son du téléphone est coupé pendant l'écoute du
+prénom pour éviter les bips de certains Android, puis rétabli dès que l'assistant répond.
 Quand l'app est fermée, Android et iOS ne permettent pas d'écouter le micro en continu sans
 notification permanente et forte consommation de batterie : le widget « Assistant vocal » est la porte d'entrée.
 

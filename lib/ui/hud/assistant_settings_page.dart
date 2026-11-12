@@ -1,8 +1,4 @@
-import 'dart:io';
-
-import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../app_state.dart';
 import '../../assistant/assistant.dart';
@@ -22,8 +18,6 @@ class AssistantSettingsPage extends StatefulWidget {
 class _AssistantSettingsPageState extends State<AssistantSettingsPage> {
   late final settings = widget.state.data.assistant;
   late final _title = TextEditingController(text: settings.title);
-  late final _key = TextEditingController(text: settings.picovoiceKey);
-  bool _obscure = true;
   List<Map<String, String>> _voices = [];
 
   @override
@@ -37,14 +31,11 @@ class _AssistantSettingsPageState extends State<AssistantSettingsPage> {
   @override
   void dispose() {
     _title.dispose();
-    _key.dispose();
     super.dispose();
   }
 
   Future<void> _save({bool restartWake = false}) async {
-    settings
-      ..title = _title.text.trim()
-      ..picovoiceKey = _key.text.trim();
+    settings.title = _title.text.trim();
     await widget.state.saveSettings();
     if (restartWake) await widget.assistant.startWakeWord();
     if (mounted) setState(() {});
@@ -54,31 +45,10 @@ class _AssistantSettingsPageState extends State<AssistantSettingsPage> {
     if (settings.persona == p) return;
     settings
       ..persona = p
-      ..voiceName = ''
-      // Le mot d'activation dépend du prénom : il faut le fichier du nouveau nom.
-      ..keywordPath = ''
-      ..wakeWord = false;
+      ..voiceName = '';
     await _save(restartWake: true);
     await widget.assistant.say(widget.assistant.lines.identity());
   }
-
-  Future<void> _importKeyword() async {
-    final file = await FilePicker.pickFile(type: FileType.any, dialogTitle: 'Fichier .ppn');
-    if (file == null) return;
-    if (!file.name.toLowerCase().endsWith('.ppn')) {
-      _snack('Choisissez le fichier .ppn téléchargé depuis la console Picovoice.');
-      return;
-    }
-    final dir = await getApplicationSupportDirectory();
-    final dest = File('${dir.path}/wake_${settings.persona.name}.ppn');
-    await dest.writeAsBytes(await file.readAsBytes());
-    settings
-      ..keywordPath = dest.path
-      ..wakeWord = true;
-    await _save(restartWake: true);
-  }
-
-  void _snack(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
   @override
   Widget build(BuildContext context) {
@@ -153,60 +123,46 @@ class _AssistantSettingsPageState extends State<AssistantSettingsPage> {
             ),
             const SizedBox(height: 16),
             HudPanel(
-              title: 'Mot d\'activation : $name',
+              title: 'Mains libres',
               accent: Hud.amber,
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 Text(
-                  'Pour lancer l\'écoute en disant simplement « $name » (app ouverte), sans toucher l\'écran. '
-                  'La détection se fait sur le téléphone grâce à Picovoice, gratuit pour un usage personnel :\n'
-                  '1. Créez un compte sur console.picovoice.ai et copiez votre « AccessKey ».\n'
-                  '2. Dans « Porcupine », créez le mot « $name » et téléchargez le fichier '
-                  '${Platform.isIOS ? 'iOS' : 'Android'} (.ppn).\n'
-                  '3. Collez la clé et importez le fichier ci-dessous.',
+                  'Quand l\'app est ouverte, dites « $name » puis votre demande, sans toucher l\'écran. '
+                  'Vous pouvez aussi tout dire d\'une traite : « $name, ferme les volets ».\n'
+                  'Aucun compte nécessaire : c\'est la reconnaissance vocale du téléphone qui écoute. '
+                  'Le micro reste actif tant que l\'app est à l\'écran, ce qui consomme plus de batterie.',
                   style: Hud.bodyText(size: 14, color: Hud.text.withValues(alpha: 0.85)),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _key,
-                  obscureText: _obscure,
-                  style: Hud.bodyText(),
-                  decoration: InputDecoration(
-                    labelText: 'AccessKey Picovoice',
-                    suffixIcon: IconButton(
-                      onPressed: () => setState(() => _obscure = !_obscure),
-                      icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                    ),
-                  ),
-                  onChanged: (_) => _save(),
-                  onSubmitted: (_) => _save(restartWake: true),
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: _importKeyword,
-                  icon: const Icon(Icons.file_open_outlined),
-                  label: Text(settings.keywordPath.isEmpty ? 'Importer le fichier « $name » (.ppn)' : 'Fichier importé ✓ — remplacer'),
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  value: settings.wakeWord,
+                  value: settings.handsFree,
                   title: Text('Écouter « $name »', style: Hud.bodyText()),
                   subtitle: Text(
                     widget.assistant.wakeError ??
-                        (widget.assistant.wakeActive
-                            ? 'Actif — dites « $name »'
-                            : (settings.picovoiceKey.isEmpty || settings.keywordPath.isEmpty)
-                                ? 'Clé et fichier requis'
-                                : 'Inactif'),
+                        (widget.assistant.wakeActive ? 'Actif — dites « $name »' : 'Inactif'),
                     style: Hud.bodyText(size: 13, color: widget.assistant.wakeError != null ? Hud.red : Hud.dim),
                   ),
                   onChanged: (v) {
-                    settings.wakeWord = v;
+                    settings.handsFree = v;
+                    _save(restartWake: true);
+                  },
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: settings.muteBeeps,
+                  title: Text('Couper les bips d\'écoute', style: Hud.bodyText()),
+                  subtitle: Text(
+                    'Certains téléphones bipent à chaque relance de l\'écoute. Le son du téléphone est '
+                    'coupé pendant l\'écoute du prénom et rétabli dès que $name parle.',
+                    style: Hud.bodyText(size: 13, color: Hud.dim),
+                  ),
+                  onChanged: (v) {
+                    settings.muteBeeps = v;
                     _save(restartWake: true);
                   },
                 ),
                 Text(
-                  'Sans mot d\'activation : touchez le réacteur, utilisez le widget « $name » '
-                  'ou l\'appui long sur l\'icône de l\'app.',
+                  'Application fermée : utilisez le widget « Assistant vocal » ou l\'appui long sur l\'icône de l\'app.',
                   style: Hud.bodyText(size: 13, color: Hud.dim),
                 ),
               ]),

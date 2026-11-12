@@ -3,8 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:porcupine_flutter/porcupine_error.dart';
-import 'package:porcupine_flutter/porcupine_manager.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
@@ -28,7 +26,6 @@ class Assistant extends ChangeNotifier {
   final AppState app;
   final SpeechToText _stt = SpeechToText();
   final FlutterTts _tts = FlutterTts();
-  PorcupineManager? _wake;
 
   AssistantPhase phase = AssistantPhase.idle;
   String transcript = '';
@@ -44,7 +41,7 @@ class Assistant extends ChangeNotifier {
   bool _handled = false;
 
   AssistantSettings get settings => app.data.assistant;
-  AssistantLines get lines => AssistantLines(settings.title);
+  AssistantLines get lines => AssistantLines(settings.title, settings.persona);
 
   void _set(AssistantPhase p) {
     phase = p;
@@ -129,7 +126,11 @@ class Assistant extends ChangeNotifier {
       _sttReady = await _stt.initialize(
         onStatus: _onSttStatus,
         onError: (e) {
-          if (phase == AssistantPhase.listening) _endListening();
+          if (_wakeListening) {
+            _onWakeError(e.errorMsg);
+          } else if (phase == AssistantPhase.listening) {
+            _endListening();
+          }
         },
       );
     } on Exception {
@@ -138,71 +139,175 @@ class Assistant extends ChangeNotifier {
     return _sttReady;
   }
 
-  // ------------------------------------------------- mot d'activation
+  // ------------------------------------------- mains libres (prénom)
 
-  /// Démarre l'écoute du mot d'activation (« Orion » / « Nova ») si elle est
-  /// configurée : clé Picovoice + fichier du mot créé sur leur console.
+  static const _audio = MethodChannel('domus/audio');
+  bool _wakeLoopOn = false;
+  bool _wakeListening = false;
+  int _wakeErrors = 0;
+  Timer? _wakeTimer;
+  bool _wakeHandled = false;
+
+  /// Variantes de transcription du prénom par la reconnaissance vocale.
+  List<String> get _aliases => settings.persona == Persona.orion
+      ? const ['orion', 'o rion', 'aurion', 'horion', 'orian', 'oreon']
+      : const ['nova', 'novah', 'nouva', 'novak', 'no va'];
+
+  /// Démarre l'écoute en continu du prénom (« Orion » / « Nova ») si le mode
+  /// mains libres est activé. Ne fonctionne que lorsque l'app est ouverte.
   Future<void> startWakeWord() async {
     await stopWakeWord();
     wakeError = null;
-    if (!settings.wakeWord || settings.picovoiceKey.trim().isEmpty || settings.keywordPath.isEmpty) {
+    if (!settings.handsFree) {
       notifyListeners();
       return;
     }
-    try {
-      _wake = await PorcupineManager.fromKeywordPaths(
-        settings.picovoiceKey.trim(),
-        [settings.keywordPath],
-        (_) => listen(fromWakeWord: true),
-        sensitivities: [0.6],
-        errorCallback: (PorcupineException e) {
-          wakeError = e.message;
-          notifyListeners();
-        },
-      );
-      await _wake!.start();
-      wakeActive = true;
-    } on PorcupineException catch (e) {
-      wakeError = e.message ?? 'Clé ou fichier Picovoice refusé.';
-      wakeActive = false;
+    if (!await _initStt()) {
+      wakeError = 'Micro ou reconnaissance vocale indisponible.';
+      notifyListeners();
+      return;
     }
+    _wakeLoopOn = true;
+    _wakeErrors = 0;
+    wakeActive = true;
     notifyListeners();
+    await _startWakeListen();
   }
 
   Future<void> stopWakeWord() async {
-    final w = _wake;
-    _wake = null;
+    _wakeLoopOn = false;
     wakeActive = false;
-    if (w != null) {
+    _wakeTimer?.cancel();
+    if (_wakeListening) {
+      _wakeListening = false;
       try {
-        await w.stop();
-        await w.delete();
+        await _stt.cancel();
       } on Exception {
-        // déjà libéré
+        // ignore
       }
     }
+    await _muteBeeps(false);
+  }
+
+  Future<void> _muteBeeps(bool mute) async {
+    if (mute && !settings.muteBeeps) return;
+    try {
+      await _audio.invokeMethod<void>('muteBeeps', {'mute': mute});
+    } on Exception {
+      // iOS / tests : pas de bips à couper.
+    } on Error {
+      // MissingPluginException
+    }
+  }
+
+  /// Remet les sons du téléphone (au démarrage, au cas où l'app aurait été
+  /// fermée pendant l'écoute).
+  Future<void> restoreAudio() => _muteBeeps(false);
+
+  Future<void> _startWakeListen() async {
+    if (!_wakeLoopOn || _wakeListening || phase != AssistantPhase.idle) return;
+    _wakeListening = true;
+    _wakeHandled = false;
+    await _muteBeeps(true);
+    try {
+      await _stt.listen(
+        onResult: _onWakeResult,
+        listenOptions: SpeechListenOptions(
+          localeId: 'fr_FR',
+          partialResults: true,
+          listenMode: ListenMode.dictation,
+          pauseFor: const Duration(seconds: 30),
+          listenFor: const Duration(seconds: 60),
+          cancelOnError: true,
+        ),
+      );
+    } on Exception {
+      _wakeListening = false;
+      _scheduleWake(const Duration(seconds: 2));
+    }
+  }
+
+  void _scheduleWake(Duration d) {
+    _wakeTimer?.cancel();
+    _wakeTimer = Timer(d, _startWakeListen);
+  }
+
+  void _onWakeError(String msg) {
+    _wakeListening = false;
+    if (msg.contains('permission')) {
+      wakeError = 'Autorisez le micro pour le mode mains libres.';
+      stopWakeWord();
+      notifyListeners();
+      return;
+    }
+    // Silence, rien reconnu, service occupé : on relance avec un léger délai.
+    _wakeErrors = (_wakeErrors + 1).clamp(0, 10);
+    _scheduleWake(Duration(milliseconds: 300 + 300 * _wakeErrors));
+  }
+
+  /// Cherche le prénom ; renvoie ce qui a été dit après, ou null.
+  String? _afterName(String words) {
+    final text = normalize(words);
+    for (final alias in _aliases) {
+      final m = RegExp('\\b$alias\\b').firstMatch(text);
+      if (m != null) return text.substring(m.end).trim();
+    }
+    return null;
+  }
+
+  void _onWakeResult(SpeechRecognitionResult r) {
+    if (!_wakeListening || _wakeHandled) return;
+    final rest = _afterName(r.recognizedWords);
+    if (rest == null) return;
+    _wakeErrors = 0;
+    // « Orion, ferme les volets » d'une traite : on exécute directement.
+    if (r.finalResult && rest.split(' ').where((w) => w.isNotEmpty).length >= 2) {
+      _wakeHandled = true;
+      _wakeTimer?.cancel();
+      _leaveWake().then((_) {
+        HapticFeedback.mediumImpact();
+        transcript = rest;
+        handle(rest);
+      });
+      return;
+    }
+    if (r.finalResult) {
+      _wakeHandled = true;
+      _wakeTimer?.cancel();
+      _leaveWake().then((_) => listen());
+      return;
+    }
+    // Prénom entendu, phrase en cours : on laisse une chance à la suite.
+    _wakeTimer?.cancel();
+    _wakeTimer = Timer(const Duration(milliseconds: 1800), () {
+      if (_wakeHandled || !_wakeListening) return;
+      _wakeHandled = true;
+      _leaveWake().then((_) => listen());
+    });
+  }
+
+  Future<void> _leaveWake() async {
+    _wakeListening = false;
+    try {
+      await _stt.cancel();
+    } on Exception {
+      // ignore
+    }
+    await _muteBeeps(false);
   }
 
   Future<void> _pauseWake() async {
-    try {
-      await _wake?.stop();
-    } on Exception {
-      // ignore
-    }
+    _wakeTimer?.cancel();
+    if (_wakeListening) await _leaveWake();
   }
 
   Future<void> _resumeWake() async {
-    if (_wake == null) return;
-    try {
-      await _wake!.start();
-    } on Exception {
-      // ignore
-    }
+    if (_wakeLoopOn && phase == AssistantPhase.idle) _scheduleWake(const Duration(milliseconds: 500));
   }
 
   // ---------------------------------------------------------------- écoute
 
-  Future<void> listen({bool fromWakeWord = false}) async {
+  Future<void> listen() async {
     if (phase == AssistantPhase.listening) {
       await _stt.stop();
       return;
@@ -248,6 +353,12 @@ class Assistant extends ChangeNotifier {
   }
 
   void _onSttStatus(String status) {
+    if ((status == 'done' || status == 'notListening') && _wakeListening) {
+      // Fin d'une session d'écoute du prénom : on enchaîne.
+      _wakeListening = false;
+      _scheduleWake(const Duration(milliseconds: 250));
+      return;
+    }
     if ((status == 'done' || status == 'notListening') && phase == AssistantPhase.listening) {
       // Laisse le temps au résultat final d'arriver.
       Future<void>.delayed(const Duration(milliseconds: 600), () {
@@ -338,9 +449,12 @@ class Assistant extends ChangeNotifier {
     _appliedVoice = null;
     await _say(text);
     _set(AssistantPhase.idle);
+    await _resumeWake();
   }
 
   Future<void> _say(String text) async {
+    // Le son peut être coupé pendant l'écoute du prénom : on le rétablit.
+    await _pauseWake();
     reply = text;
     log.add(AssistantLog(false, text));
     if (log.length > 30) log.removeRange(0, log.length - 30);

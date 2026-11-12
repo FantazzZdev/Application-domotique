@@ -40,7 +40,7 @@ class _DeltaHomeAppState extends State<DeltaHomeApp> with WidgetsBindingObserver
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    widget.assistant.startWakeWord();
+    widget.assistant.restoreAudio().then((_) => widget.assistant.startWakeWord());
     // Ouverture depuis le widget de l'assistant : on lance directement l'écoute.
     try {
       HomeWidget.initiallyLaunchedFromHomeWidget().then(_onWidgetUri);
@@ -72,7 +72,7 @@ class _DeltaHomeAppState extends State<DeltaHomeApp> with WidgetsBindingObserver
     }
     if (s == AppLifecycleState.resumed) {
       widget.state.refreshStates();
-      widget.assistant.startWakeWord();
+      widget.assistant.restoreAudio().then((_) => widget.assistant.startWakeWord());
     }
   }
 
