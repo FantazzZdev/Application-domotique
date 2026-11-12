@@ -40,13 +40,15 @@ Voir [docs/IPHONE.md](docs/IPHONE.md) (Mac + Xcode nécessaires, iOS 17+ pour le
 ## Utilisation
 
 1. Ouvrez l'app → **Ajouter un compte** → nom affiché, e-mail et mot de passe
-   **de l'application Tydom** de ce compte.
+   **de l'application Tydom** de ce compte, et **adresse MAC de la box**
+   (étiquette sous la box Tydom, 12 caractères, souvent `001A25…`).
 2. Recommencez pour le second compte (ex. celui des beaux-parents).
 3. Les équipements apparaissent par compte ; les raccourcis sont proposés automatiquement.
 4. Placez les widgets sur l'écran d'accueil.
 
-Si la box n'est pas trouvée automatiquement, renseignez son **adresse MAC**
-(étiquette sous la box Tydom, `001A25…`) dans *Options avancées*.
+L'adresse MAC est obligatoire : le service Delta Dore ne donne le mot de passe
+d'une box que si on lui fournit son adresse MAC. Plusieurs box sur un même compte :
+séparez les adresses par une virgule.
 
 ## Fonctionnement technique
 

@@ -64,36 +64,42 @@ class DeltaDoreCloud {
     return token;
   }
 
-  /// Renvoie les box du compte. Si [mac] est fourni, ne garde que celle-ci.
-  Future<List<Gateway>> fetchGateways(String email, String password, {String? mac}) async {
+  /// Normalise une adresse MAC saisie ("00:1a:25…" → "001A25…").
+  static String normalizeMac(String mac) => mac.replaceAll(RegExp('[^0-9A-Fa-f]'), '').toUpperCase();
+
+  /// Récupère le mot de passe de chaque box demandée. Le service Delta Dore
+  /// exige l'adresse MAC de la box : il ne sait pas lister toutes les box.
+  Future<List<Gateway>> fetchGateways(String email, String password, {required List<String> macs}) async {
+    final wanted = macs.map(normalizeMac).where((m) => m.isNotEmpty).toSet();
+    if (wanted.isEmpty) throw TydomException('Indiquez l\'adresse MAC de la box Tydom.');
     final token = await _login(email, password);
-    final wanted = mac?.replaceAll(RegExp('[^0-9A-Fa-f]'), '').toUpperCase();
-    final uri = Uri.parse(wanted == null || wanted.isEmpty
-        ? '$_sitesUrl?gateway_mac='
-        : '$_sitesUrl?gateway_mac=$wanted');
-    final res = await _http.get(uri, headers: {'Authorization': 'Bearer $token'});
-    if (res.statusCode != 200) {
-      throw TydomException('Impossible de lister les box du compte (${res.statusCode}).');
-    }
-    final json = jsonDecode(res.body);
-    final sites = json is Map ? (json['sites'] as List? ?? const []) : (json is List ? json : const []);
     final gateways = <Gateway>[];
-    for (final site in sites) {
-      if (site is! Map) continue;
-      final gw = site['gateway'];
-      if (gw is! Map || gw['mac'] == null || gw['password'] == null) continue;
-      final gwMac = (gw['mac'] as String).toUpperCase();
-      if (wanted != null && wanted.isNotEmpty && gwMac != wanted) continue;
-      gateways.add(Gateway(
-        mac: gwMac,
-        password: gw['password'] as String,
-        name: (site['name'] as String?) ?? '',
-      ));
-    }
-    if (gateways.isEmpty) {
-      throw TydomException(wanted == null || wanted.isEmpty
-          ? 'Aucune box Tydom trouvée sur ce compte. Essayez d\'indiquer l\'adresse MAC de la box.'
-          : 'La box $wanted n\'est pas rattachée à ce compte.');
+    for (final mac in wanted) {
+      final res = await _http.get(
+        Uri.parse(_sitesUrl).replace(queryParameters: {'gateway_mac': mac}),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (res.statusCode >= 400 && res.statusCode < 500) {
+        throw TydomException('La box $mac est introuvable sur ce compte '
+            '(${res.statusCode}). Vérifiez l\'adresse MAC.');
+      }
+      if (res.statusCode != 200) {
+        throw TydomException('Service Delta Dore indisponible (${res.statusCode}).');
+      }
+      final json = jsonDecode(res.body);
+      final sites = json is Map ? (json['sites'] as List? ?? const []) : (json is List ? json : const []);
+      Gateway? found;
+      for (final site in sites) {
+        if (site is! Map) continue;
+        final gw = site['gateway'];
+        if (gw is! Map || gw['mac'] == null || gw['password'] == null) continue;
+        if ((gw['mac'] as String).toUpperCase() != mac) continue;
+        found = Gateway(mac: mac, password: gw['password'] as String, name: (site['name'] as String?) ?? '');
+      }
+      if (found == null) {
+        throw TydomException('La box $mac n\'est pas rattachée à ce compte. Vérifiez l\'adresse MAC.');
+      }
+      gateways.add(found);
     }
     return gateways;
   }

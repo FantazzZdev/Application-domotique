@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../app_state.dart';
 import '../models.dart';
 import '../services/widget_bridge.dart';
+import '../tydom/cloud.dart';
 import 'common.dart';
 
 class AccountsPage extends StatelessWidget {
@@ -79,7 +80,7 @@ class _AccountFormPageState extends State<AccountFormPage> {
   late final _email = TextEditingController(text: widget.account?.email ?? '');
   late final _password = TextEditingController(text: widget.account?.password ?? '');
   late final _mac = TextEditingController(
-      text: widget.account?.gateways.length == 1 ? widget.account!.gateways.first.mac : '');
+      text: widget.account?.gateways.map((g) => g.mac).join(', ') ?? '');
   late int _color = widget.account?.colorIndex ?? widget.state.accounts.length % accountColors.length;
   bool _obscure = true;
   bool _busy = false;
@@ -193,6 +194,30 @@ class _AccountFormPageState extends State<AccountFormPage> {
               ),
               validator: (v) => (v ?? '').isEmpty ? 'Mot de passe requis' : null,
             ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _mac,
+              textCapitalization: TextCapitalization.characters,
+              autocorrect: false,
+              decoration: const InputDecoration(
+                labelText: 'Adresse MAC de la box Tydom',
+                hintText: '001A25XXXXXX',
+                helperText: 'Étiquette sous la box (12 caractères, commence souvent par 001A25). '
+                    'Plusieurs box : séparez par une virgule.',
+                helperMaxLines: 3,
+                prefixIcon: Icon(Icons.router_outlined),
+              ),
+              validator: (v) {
+                final macs = (v ?? '')
+                    .split(RegExp('[,;/]'))
+                    .map(DeltaDoreCloud.normalizeMac)
+                    .where((m) => m.isNotEmpty)
+                    .toList();
+                if (macs.isEmpty) return 'Adresse MAC requise';
+                if (macs.any((m) => m.length != 12)) return 'Une adresse MAC fait 12 caractères (0-9, A-F)';
+                return null;
+              },
+            ),
             const SizedBox(height: 20),
             Text('Couleur', style: t.textTheme.labelLarge),
             const SizedBox(height: 10),
@@ -220,27 +245,6 @@ class _AccountFormPageState extends State<AccountFormPage> {
               ],
             ),
             const SizedBox(height: 12),
-            Theme(
-              data: t.copyWith(dividerColor: Colors.transparent),
-              child: ExpansionTile(
-                tilePadding: EdgeInsets.zero,
-                title: const Text('Options avancées'),
-                children: [
-                  TextFormField(
-                    controller: _mac,
-                    textCapitalization: TextCapitalization.characters,
-                    decoration: const InputDecoration(
-                      labelText: 'Adresse MAC de la box (facultatif)',
-                      hintText: '001A25XXXXXX',
-                      helperText: 'Inscrite sous la box Tydom. Utile si le compte a plusieurs box '
-                          'ou si la détection automatique échoue.',
-                      helperMaxLines: 3,
-                      prefixIcon: Icon(Icons.router_outlined),
-                    ),
-                  ),
-                ],
-              ),
-            ),
             if (_error != null) ...[
               const SizedBox(height: 12),
               Container(

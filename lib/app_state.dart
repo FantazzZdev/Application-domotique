@@ -55,7 +55,7 @@ class AppState extends ChangeNotifier {
     String? mac,
     required int colorIndex,
   }) async {
-    final gateways = await cloud.fetchGateways(email, password, mac: mac);
+    final gateways = await cloud.fetchGateways(email, password, macs: (mac ?? '').split(RegExp('[,;/]')));
     final account = existing ??
         Account(id: newId(), label: label, email: email, password: password);
     account
