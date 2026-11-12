@@ -4,7 +4,7 @@ import 'package:home_widget/home_widget.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'app_state.dart';
-import 'jarvis/jarvis.dart';
+import 'assistant/assistant.dart';
 import 'services/widget_bridge.dart';
 import 'ui/hud/hud_home.dart';
 import 'ui/hud/hud_theme.dart';
@@ -18,16 +18,16 @@ Future<void> main() async {
   } on Exception {
     // Les widgets sont un bonus : l'app doit démarrer quoi qu'il arrive.
   }
-  final jarvis = Jarvis(state);
-  state.onJarvisRequested = () => jarvis.listen();
+  final assistant = Assistant(state);
+  state.onAssistantRequested = () => assistant.listen();
   state.initQuickActions();
-  runApp(DeltaHomeApp(state: state, jarvis: jarvis));
+  runApp(DeltaHomeApp(state: state, assistant: assistant));
 }
 
 class DeltaHomeApp extends StatefulWidget {
-  const DeltaHomeApp({super.key, required this.state, required this.jarvis});
+  const DeltaHomeApp({super.key, required this.state, required this.assistant});
   final AppState state;
-  final Jarvis jarvis;
+  final Assistant assistant;
 
   @override
   State<DeltaHomeApp> createState() => _DeltaHomeAppState();
@@ -40,8 +40,8 @@ class _DeltaHomeAppState extends State<DeltaHomeApp> with WidgetsBindingObserver
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    widget.jarvis.startWakeWord();
-    // Ouverture depuis le widget « Jarvis » : on lance directement l'écoute.
+    widget.assistant.startWakeWord();
+    // Ouverture depuis le widget de l'assistant : on lance directement l'écoute.
     try {
       HomeWidget.initiallyLaunchedFromHomeWidget().then(_onWidgetUri);
       _widgetClicks = HomeWidget.widgetClicked.listen(_onWidgetUri);
@@ -51,8 +51,8 @@ class _DeltaHomeAppState extends State<DeltaHomeApp> with WidgetsBindingObserver
   }
 
   void _onWidgetUri(Uri? uri) {
-    if (uri?.host == 'jarvis') {
-      Future<void>.delayed(const Duration(milliseconds: 400), widget.jarvis.listen);
+    if (uri?.host == 'assistant') {
+      Future<void>.delayed(const Duration(milliseconds: 400), widget.assistant.listen);
     }
   }
 
@@ -68,23 +68,23 @@ class _DeltaHomeAppState extends State<DeltaHomeApp> with WidgetsBindingObserver
     // Micro et connexions libérés en arrière-plan, repris au retour.
     if (s == AppLifecycleState.paused) {
       widget.state.disconnect();
-      widget.jarvis.stopWakeWord();
+      widget.assistant.stopWakeWord();
     }
     if (s == AppLifecycleState.resumed) {
       widget.state.refreshStates();
-      widget.jarvis.startWakeWord();
+      widget.assistant.startWakeWord();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Jarvis',
+      title: 'Domus',
       debugShowCheckedModeBanner: false,
       theme: Hud.theme(),
       darkTheme: Hud.theme(),
       themeMode: ThemeMode.dark,
-      home: HudHome(state: widget.state, jarvis: widget.jarvis),
+      home: HudHome(state: widget.state, assistant: widget.assistant),
     );
   }
 }

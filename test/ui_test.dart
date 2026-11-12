@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:deltahome/app_state.dart';
-import 'package:deltahome/jarvis/jarvis.dart';
+import 'package:deltahome/assistant/assistant.dart';
 import 'package:deltahome/models.dart';
 import 'package:deltahome/ui/hud/hud_home.dart';
 import 'package:deltahome/ui/hud/hud_theme.dart';
@@ -60,10 +60,10 @@ void main() {
     tester.view.physicalSize = const Size(1080, 2340);
     tester.view.devicePixelRatio = 3;
     final state = demoState();
-    final jarvis = Jarvis(state);
-    await tester.pumpWidget(MaterialApp(theme: Hud.theme(), home: HudHome(state: state, jarvis: jarvis)));
+    final assistant = Assistant(state);
+    await tester.pumpWidget(MaterialApp(theme: Hud.theme(), home: HudHome(state: state, assistant: assistant)));
     await tester.pump(const Duration(milliseconds: 500));
-    expect(find.text('J.A.R.V.I.S'), findsOneWidget);
+    expect(find.text('O.R.I.O.N'), findsOneWidget);
     expect(find.text('MAISON'), findsWidgets);
     expect(find.text('40%'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());

@@ -8,8 +8,8 @@ import android.widget.RemoteViews
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import es.antonborri.home_widget.HomeWidgetProvider
 
-/** Widget "Jarvis" : ouvre l'app et lance directement l'écoute. */
-class JarvisWidgetProvider : HomeWidgetProvider() {
+/** Widget assistant vocal : ouvre l'app et lance directement l'écoute. */
+class VoiceWidgetProvider : HomeWidgetProvider() {
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -17,13 +17,13 @@ class JarvisWidgetProvider : HomeWidgetProvider() {
         widgetData: SharedPreferences,
     ) {
         for (id in appWidgetIds) {
-            val views = RemoteViews(context.packageName, R.layout.widget_jarvis)
+            val views = RemoteViews(context.packageName, R.layout.widget_voice)
             views.setOnClickPendingIntent(
-                R.id.jarvis_root,
+                R.id.voice_root,
                 HomeWidgetLaunchIntent.getActivity(
                     context,
                     MainActivity::class.java,
-                    Uri.parse("deltahome://jarvis"),
+                    Uri.parse("deltahome://assistant"),
                 ),
             )
             appWidgetManager.updateAppWidget(id, views)

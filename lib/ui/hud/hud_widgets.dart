@@ -199,14 +199,15 @@ class _PanelPainter extends CustomPainter {
 }
 
 // ======================================================================
-// Réacteur ARK : cœur visuel de Jarvis.
+// Réacteur : cœur visuel de l'assistant.
 // ======================================================================
 
 enum ReactorMode { idle, listening, thinking, speaking }
 
 class ArcReactor extends StatefulWidget {
-  const ArcReactor({super.key, required this.mode, this.level = 0, this.size = 230});
+  const ArcReactor({super.key, required this.mode, this.level = 0, this.size = 230, this.color = Hud.cyan});
   final ReactorMode mode;
+  final Color color;
   final double level;
   final double size;
 
@@ -233,7 +234,7 @@ class _ArcReactorState extends State<ArcReactor> with SingleTickerProviderStateM
           animation: _c,
           builder: (_, _) {
             _smooth += (widget.level - _smooth) * 0.25;
-            return CustomPaint(painter: _ReactorPainter(_c.value * 60, widget.mode, _smooth));
+            return CustomPaint(painter: _ReactorPainter(_c.value * 60, widget.mode, _smooth, widget.color));
           },
         ),
       ),
@@ -242,10 +243,11 @@ class _ArcReactorState extends State<ArcReactor> with SingleTickerProviderStateM
 }
 
 class _ReactorPainter extends CustomPainter {
-  _ReactorPainter(this.t, this.mode, this.level);
+  _ReactorPainter(this.t, this.mode, this.level, this.base);
   final double t; // secondes
   final ReactorMode mode;
   final double level;
+  final Color base;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -253,7 +255,7 @@ class _ReactorPainter extends CustomPainter {
     final R = size.shortestSide / 2;
     final color = switch (mode) {
       ReactorMode.thinking => Hud.amber,
-      _ => Hud.cyan,
+      _ => base,
     };
     final speed = switch (mode) {
       ReactorMode.idle => 0.25,

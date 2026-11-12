@@ -24,8 +24,8 @@ class AppState extends ChangeNotifier {
   final Set<String> busy = {};
   bool refreshing = false;
 
-  /// Demande d'ouverture de Jarvis (raccourci de l'icône, widget).
-  VoidCallback? onJarvisRequested;
+  /// Demande d'ouverture de l'assistant vocal (raccourci de l'icône, widget).
+  VoidCallback? onAssistantRequested;
 
   /// Affiche un message à l'utilisateur (branché par l'UI).
   void Function(String message, {bool error})? onMessage;
@@ -194,7 +194,7 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  /// Exécute une commande sur plusieurs équipements en parallèle (Jarvis).
+  /// Exécute une commande sur plusieurs équipements en parallèle (assistant vocal).
   /// Renvoie les erreurs éventuelles.
   Future<List<String>> runOn(List<Device> devices, DeviceAction action, {int? position}) async {
     final errors = <String>[];
@@ -218,6 +218,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> saveSettings() async {
     await Storage.save(data);
+    await _publishQuickActions();
     notifyListeners();
   }
 
@@ -242,8 +243,8 @@ class AppState extends ChangeNotifier {
 
   void initQuickActions() {
     _quickActions.initialize((type) {
-      if (type == 'jarvis') {
-        onJarvisRequested?.call();
+      if (type == 'assistant') {
+        onAssistantRequested?.call();
         return;
       }
       for (final s in data.shortcuts) {
@@ -256,7 +257,7 @@ class AppState extends ChangeNotifier {
   Future<void> _publishQuickActions() async {
     try {
       await _quickActions.setShortcutItems([
-        const ShortcutItem(type: 'jarvis', localizedTitle: 'Parler à Jarvis'),
+        ShortcutItem(type: 'assistant', localizedTitle: 'Parler à ${data.assistant.persona.displayName}'),
         ...data.shortcuts.take(3).map((s) => ShortcutItem(type: s.id, localizedTitle: s.label)),
       ]);
     } on Exception {

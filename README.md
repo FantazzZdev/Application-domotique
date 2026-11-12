@@ -1,19 +1,20 @@
-# Jarvis — domotique Delta Dore
+# Domus — domotique Delta Dore
 
-Un assistant façon Iron Man pour piloter **plusieurs comptes Delta Dore / Tydom en même temps** :
+Un assistant vocal futuriste pour piloter **plusieurs comptes Delta Dore / Tydom en même temps** :
 vos volets (votre compte) et le portail de la famille (leur compte), sans jamais
-vous déconnecter. À la voix (« Jarvis, ferme les volets »), par curseurs holographiques,
+vous déconnecter. À la voix (« Orion, ferme les volets »), par curseurs holographiques,
 ou par des **boutons sur l'écran d'accueil** du téléphone.
 
 ![Aperçu](docs/apercu.png)
 
 ## Fonctionnalités
 
-- **Assistant vocal Jarvis** : touchez le réacteur (ou dites « Jarvis » si le mot d'activation
+- **Deux assistants au choix** : **Orion** (voix masculine, thème cyan) ou **Nova**
+  (voix féminine, thème violet). Touchez le réacteur (ou dites son nom si le mot d'activation
   est configuré) puis parlez : « ferme les volets », « ouvre le portail chez les beaux-parents »,
   « mets le volet du salon à 30 % », « stop les volets partout », « fais-moi un rapport »…
-  Jarvis répond à voix haute et agit. S'il y a un doute (« quelle maison ? »), il demande.
-- **Interface HUD** futuriste : réacteur ARK animé qui réagit à la voix, curseurs verticaux
+  L'assistant répond à voix haute et agit. En cas de doute (« quelle maison ? »), il demande.
+- **Interface HUD** futuriste : réacteur animé qui réagit à la voix, curseurs verticaux
   pour régler chaque volet (et « Tous »), « maintenir pour activer » pour portail et garage.
 
 - **Multi-comptes** : ajoutez autant de comptes Tydom que nécessaire (« Maison »,
@@ -39,17 +40,21 @@ Onglet **Actions** du dépôt → dernier *APK Android* réussi → *Artifacts* 
 
 Ou en local : `flutter build apk --release` (Flutter 3.50+, SDK Android).
 
-Ajouter le widget : appui long sur l'écran d'accueil → *Widgets* → *Jarvis*
-(widgets « Jarvis » pour parler, « Bouton Jarvis » et « Protocoles Jarvis »).
+Ajouter le widget : appui long sur l'écran d'accueil → *Widgets* → *Domus*
+(« Assistant vocal » pour parler, « Bouton Domus » et « Protocoles Domus »).
 
-### Mot d'activation « Jarvis » (facultatif)
+### Mot d'activation « Orion » / « Nova » (facultatif)
 
-Pour lancer l'écoute en disant simplement « Jarvis » (app ouverte), créez un compte gratuit sur
-[console.picovoice.ai](https://console.picovoice.ai/), copiez votre *AccessKey* et collez-la dans
-*Menu → Réglages de Jarvis*. La détection se fait sur le téléphone, rien n'est envoyé en ligne.
-Sans clé : touchez le réacteur, utilisez le widget « Jarvis » ou l'appui long sur l'icône de l'app.
+Pour lancer l'écoute en disant simplement le nom de l'assistant (app ouverte) :
+1. créez un compte gratuit sur [console.picovoice.ai](https://console.picovoice.ai/) et copiez votre *AccessKey* ;
+2. dans *Porcupine*, créez le mot « Orion » (ou « Nova ») et téléchargez le fichier `.ppn`
+   pour votre téléphone (Android ou iOS) ;
+3. dans l'app : *Menu → Assistant*, collez la clé et importez le fichier.
+
+La détection se fait sur le téléphone, rien n'est envoyé en ligne.
+Sans mot d'activation : touchez le réacteur, utilisez le widget « Assistant vocal » ou l'appui long sur l'icône de l'app.
 Quand l'app est fermée, Android et iOS ne permettent pas d'écouter le micro en continu sans
-notification permanente et forte consommation de batterie : le widget « Jarvis » est la porte d'entrée.
+notification permanente et forte consommation de batterie : le widget « Assistant vocal » est la porte d'entrée.
 
 ## Installer sur iPhone
 

@@ -1,11 +1,11 @@
 <resources>
-    <string name="app_name">Jarvis</string>
-    <string name="widget_shortcuts_label">Protocoles Jarvis</string>
+    <string name="app_name">Domus</string>
+    <string name="widget_shortcuts_label">Protocoles Domus</string>
     <string name="widget_shortcuts_desc">Vos 4 premiers raccourcis : volets, portail…</string>
-    <string name="widget_button_label">Bouton Jarvis</string>
+    <string name="widget_button_label">Bouton Domus</string>
     <string name="widget_button_desc">Un bouton pour une action : ouvrir le portail, fermer les volets…</string>
-    <string name="widget_empty">Créez des protocoles dans Jarvis</string>
+    <string name="widget_empty">Créez des protocoles dans Domus</string>
     <string name="widget_pick">Choisir l\'action du bouton</string>
-    <string name="widget_jarvis_label">Jarvis</string>
-    <string name="widget_jarvis_desc">Touchez le réacteur pour parler à Jarvis.</string>
+    <string name="widget_voice_label">Assistant vocal Domus</string>
+    <string name="widget_voice_desc">Touchez le réacteur pour parler à Orion ou Nova.</string>
 </resources>

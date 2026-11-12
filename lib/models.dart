@@ -178,68 +178,96 @@ class Shortcut {
       );
 }
 
+/// Les deux personnalités de l'assistant.
+enum Persona {
+  orion('Orion', 'O.R.I.O.N', true),
+  nova('Nova', 'N.O.V.A', false);
+
+  const Persona(this.displayName, this.spaced, this.male);
+  final String displayName;
+  final String spaced;
+  final bool male;
+}
+
 /// Réglages de l'assistant vocal.
-class JarvisSettings {
-  JarvisSettings({
+class AssistantSettings {
+  AssistantSettings({
+    this.persona = Persona.orion,
     this.title = '',
     this.wakeWord = false,
     this.picovoiceKey = '',
+    this.keywordPath = '',
     this.speechRate = 0.5,
-    this.pitch = 0.9,
+    this.pitch = 1.0,
+    this.voiceName = '',
     this.voice = true,
   });
 
-  /// Comment Jarvis s'adresse à vous (« monsieur », un prénom…). Vide = rien.
+  Persona persona;
+
+  /// Comment l'assistant s'adresse à vous (« monsieur », un prénom…). Vide = rien.
   String title;
 
-  /// Écoute du mot « Jarvis » quand l'app est ouverte (clé Picovoice requise).
+  /// Écoute du mot d'activation quand l'app est ouverte (clé Picovoice requise).
   bool wakeWord;
   String picovoiceKey;
+
+  /// Fichier .ppn du mot « Orion » / « Nova » créé sur la console Picovoice.
+  String keywordPath;
   double speechRate;
   double pitch;
+
+  /// Voix de synthèse choisie (vide = choix automatique homme / femme).
+  String voiceName;
 
   /// Réponses parlées (sinon affichées seulement).
   bool voice;
 
   Map<String, dynamic> toJson() => {
+        'persona': persona.name,
         'title': title,
         'wakeWord': wakeWord,
         'picovoiceKey': picovoiceKey,
+        'keywordPath': keywordPath,
         'speechRate': speechRate,
         'pitch': pitch,
+        'voiceName': voiceName,
         'voice': voice,
       };
 
-  factory JarvisSettings.fromJson(Map<String, dynamic>? j) => j == null
-      ? JarvisSettings()
-      : JarvisSettings(
+  factory AssistantSettings.fromJson(Map<String, dynamic>? j) => j == null
+      ? AssistantSettings()
+      : AssistantSettings(
+          persona: Persona.values.asNameMap()[j['persona']] ?? Persona.orion,
           title: (j['title'] as String?) ?? '',
           wakeWord: (j['wakeWord'] as bool?) ?? false,
           picovoiceKey: (j['picovoiceKey'] as String?) ?? '',
+          keywordPath: (j['keywordPath'] as String?) ?? '',
           speechRate: (j['speechRate'] as num?)?.toDouble() ?? 0.5,
-          pitch: (j['pitch'] as num?)?.toDouble() ?? 0.9,
+          pitch: (j['pitch'] as num?)?.toDouble() ?? 1.0,
+          voiceName: (j['voiceName'] as String?) ?? '',
           voice: (j['voice'] as bool?) ?? true,
         );
 }
 
 /// Tout ce qui est persisté.
 class AppData {
-  AppData({List<Account>? accounts, List<Device>? devices, List<Shortcut>? shortcuts, JarvisSettings? jarvis})
+  AppData({List<Account>? accounts, List<Device>? devices, List<Shortcut>? shortcuts, AssistantSettings? assistant})
       : accounts = accounts ?? [],
         devices = devices ?? [],
         shortcuts = shortcuts ?? [],
-        jarvis = jarvis ?? JarvisSettings();
+        assistant = assistant ?? AssistantSettings();
 
   final List<Account> accounts;
   final List<Device> devices;
   final List<Shortcut> shortcuts;
-  final JarvisSettings jarvis;
+  final AssistantSettings assistant;
 
   String encode() => jsonEncode({
         'accounts': accounts.map((a) => a.toJson()).toList(),
         'devices': devices.map((d) => d.toJson()).toList(),
         'shortcuts': shortcuts.map((s) => s.toJson()).toList(),
-        'jarvis': jarvis.toJson(),
+        'assistant': assistant.toJson(),
       });
 
   factory AppData.decode(String? raw) {
@@ -251,8 +279,8 @@ class AppData {
       accounts: list('accounts').map(Account.fromJson).toList(),
       devices: list('devices').map(Device.fromJson).toList(),
       shortcuts: list('shortcuts').map(Shortcut.fromJson).toList(),
-      jarvis: JarvisSettings.fromJson(
-          j['jarvis'] == null ? null : Map<String, dynamic>.from(j['jarvis'] as Map)),
+      assistant: AssistantSettings.fromJson(
+          j['assistant'] == null ? null : Map<String, dynamic>.from(j['assistant'] as Map)),
     );
   }
 

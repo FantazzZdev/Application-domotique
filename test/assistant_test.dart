@@ -1,4 +1,4 @@
-import 'package:deltahome/jarvis/intent_parser.dart';
+import 'package:deltahome/assistant/intent_parser.dart';
 import 'package:deltahome/models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -27,10 +27,10 @@ void main() {
     ],
   );
   final p = IntentParser(data);
-  final lines = JarvisLines('');
+  final lines = AssistantLines('');
 
   test('ferme les volets de la maison', () {
-    final i = p.parse('Jarvis, ferme les volets de la maison');
+    final i = p.parse('Orion, ferme les volets de la maison');
     expect(i.kind, IntentKind.command);
     expect(i.action, DeviceAction.close);
     expect(i.devices.map((d) => d.deviceId), unorderedEquals([1, 2]));
@@ -69,7 +69,7 @@ void main() {
   test('stop, partout, small talk', () {
     expect(p.parse('stop les volets partout').devices.length, 3);
     expect(p.parse('stop les volets partout').action, DeviceAction.stop);
-    expect(p.parse('bonjour jarvis').kind, IntentKind.greeting);
+    expect(p.parse('bonjour nova').kind, IntentKind.greeting);
     expect(p.parse('merci').kind, IntentKind.thanks);
     expect(p.parse('fais-moi un rapport').kind, IntentKind.status);
     expect(p.parse('raconte une blague').kind, IntentKind.unknown);

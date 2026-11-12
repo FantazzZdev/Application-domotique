@@ -1,10 +1,10 @@
 import '../models.dart';
 
-/// Ce que Jarvis a compris d'une phrase.
+/// Ce que l'assistant a compris d'une phrase.
 enum IntentKind { command, greeting, thanks, status, identity, cancel, clarify, unknown }
 
-class JarvisIntent {
-  JarvisIntent(this.kind, {this.devices = const [], this.action, this.position, this.category, this.choices = const []});
+class AssistantIntent {
+  AssistantIntent(this.kind, {this.devices = const [], this.action, this.position, this.category, this.choices = const []});
 
   final IntentKind kind;
   final List<Device> devices;
@@ -39,7 +39,7 @@ Set<String> _words(String s) => normalize(s).split(' ').where((w) => w.isNotEmpt
 const _stop = {
   'le', 'la', 'les', 'de', 'du', 'des', 'un', 'une', 'et', 'a', 'au', 'aux', 'en', 'sur', 'dans', 'chez',
   'mon', 'ma', 'mes', 'ton', 'ta', 'tes', 'son', 'sa', 'ses', 'nos', 'notre', 'vos', 'votre', 'leur', 'leurs',
-  'l', 'd', 'il', 'te', 'plait', 'stp', 'svp', 'peux', 'tu', 'pourrais', 'jarvis', 'moi', 'nous', 'est', 'ce',
+  'l', 'd', 'il', 'te', 'plait', 'stp', 'svp', 'peux', 'tu', 'pourrais', 'orion', 'nova', 'moi', 'nous', 'est', 'ce',
   'volet', 'volets', 'store', 'stores', 'portail', 'garage', 'porte', 'lumiere', 'lumieres', 'lampe', 'lampes',
   'roulant', 'roulants', 'tout', 'tous', 'toutes', 'toute', 'piece', 'maison',
 };
@@ -64,9 +64,9 @@ class IntentParser {
   IntentParser(this.data);
   final AppData data;
 
-  JarvisIntent parse(String utterance, {JarvisIntent? pending}) {
+  AssistantIntent parse(String utterance, {AssistantIntent? pending}) {
     var text = normalize(utterance);
-    text = text.replaceFirst(RegExp(r'^(ok |hey |dis |eh )?jarvis\b'), '').trim();
+    text = text.replaceFirst(RegExp(r'^(ok |hey |dis |eh )?(orion|nova)\b'), '').trim();
     final words = text.split(' ').where((w) => w.isNotEmpty).toSet();
 
     // Réponse à une question « chez qui ? ».
@@ -74,18 +74,18 @@ class IntentParser {
       final acc = _matchAccounts(text, pending.choices);
       if (acc.isNotEmpty) {
         final devices = pending.devices.where((d) => acc.any((a) => a.id == d.accountId)).toList();
-        return JarvisIntent(IntentKind.command,
+        return AssistantIntent(IntentKind.command,
             devices: devices, action: pending.action, position: pending.position, category: pending.category);
       }
       if (words.contains('partout') || words.contains('deux') || words.contains('tous')) {
-        return JarvisIntent(IntentKind.command,
+        return AssistantIntent(IntentKind.command,
             devices: pending.devices, action: pending.action, position: pending.position, category: pending.category);
       }
     }
 
-    if (text.isEmpty) return JarvisIntent(IntentKind.unknown);
+    if (text.isEmpty) return AssistantIntent(IntentKind.unknown);
     if (words.intersection({'annule', 'annuler', 'laisse', 'rien', 'oublie'}).isNotEmpty) {
-      return JarvisIntent(IntentKind.cancel);
+      return AssistantIntent(IntentKind.cancel);
     }
 
     final position = _position(text);
@@ -104,20 +104,20 @@ class IntentParser {
 
     if (action == null && position == null) {
       if (words.intersection({'merci', 'thanks', 'parfait', 'super', 'top', 'genial'}).isNotEmpty) {
-        return JarvisIntent(IntentKind.thanks);
+        return AssistantIntent(IntentKind.thanks);
       }
       if (words.intersection({'bonjour', 'salut', 'hello', 'bonsoir', 'coucou', 'yo', 'hey'}).isNotEmpty) {
-        return JarvisIntent(IntentKind.greeting);
+        return AssistantIntent(IntentKind.greeting);
       }
       if (words.intersection({'etat', 'statut', 'rapport', 'bilan', 'situation', 'diagnostic'}).isNotEmpty ||
           text.contains('ou en sont') || text.contains('est ce que') && category != null) {
-        return JarvisIntent(IntentKind.status, category: category);
+        return AssistantIntent(IntentKind.status, category: category);
       }
       if (text.contains('qui es tu') || text.contains('t es qui') || text.contains('qui etes vous') ||
           text.contains('presente toi')) {
-        return JarvisIntent(IntentKind.identity);
+        return AssistantIntent(IntentKind.identity);
       }
-      return JarvisIntent(IntentKind.unknown);
+      return AssistantIntent(IntentKind.unknown);
     }
 
     // Équipements candidats.
@@ -127,13 +127,13 @@ class IntentParser {
     if (category != null) devices = devices.where((d) => _inCategory(d, category)).toList();
     if (devices.isEmpty) {
       final cat = category ?? (position != null ? DeviceKind.shutter : null);
-      if (cat == null) return JarvisIntent(IntentKind.unknown);
+      if (cat == null) return AssistantIntent(IntentKind.unknown);
       devices = scope.where((d) => _inCategory(d, cat)).toList();
-      if (devices.isEmpty) return JarvisIntent(IntentKind.command, category: cat, action: action);
+      if (devices.isEmpty) return AssistantIntent(IntentKind.command, category: cat, action: action);
       // Plusieurs maisons concernées et aucune précisée : on demande.
       final owners = {for (final d in devices) d.accountId};
       if (accounts.isEmpty && owners.length > 1 && !_saysEverywhere(words)) {
-        return JarvisIntent(
+        return AssistantIntent(
           IntentKind.clarify,
           devices: devices,
           action: action ?? DeviceAction.open,
@@ -143,7 +143,7 @@ class IntentParser {
         );
       }
     }
-    return JarvisIntent(IntentKind.command,
+    return AssistantIntent(IntentKind.command,
         devices: devices, action: action ?? DeviceAction.open, position: position, category: category ?? devices.first.kind);
   }
 
@@ -211,14 +211,15 @@ class IntentParser {
   }
 }
 
-/// Phrases de Jarvis.
-class JarvisLines {
-  JarvisLines(this.title);
+/// Phrases de l'assistant.
+class AssistantLines {
+  AssistantLines(this.title, [this.persona = Persona.orion]);
   final String title;
+  final Persona persona;
 
   String _t([String sep = ', ']) => title.trim().isEmpty ? '' : '$sep${title.trim()}';
 
-  String ack(JarvisIntent i, AppData data) {
+  String ack(AssistantIntent i, AppData data) {
     final n = i.devices.length;
     final kind = i.category ?? (n > 0 ? i.devices.first.kind : DeviceKind.shutter);
     final where = _where(i, data);
@@ -240,7 +241,7 @@ class JarvisLines {
     }
   }
 
-  String _where(JarvisIntent i, AppData data) {
+  String _where(AssistantIntent i, AppData data) {
     final owners = {for (final d in i.devices) d.accountId};
     if (data.accounts.length < 2 || owners.length != 1) return '';
     final a = data.account(owners.first);
@@ -275,7 +276,7 @@ class JarvisLines {
         DeviceKind.other => 'les équipements',
       };
 
-  String clarify(JarvisIntent i) {
+  String clarify(AssistantIntent i) {
     final names = i.choices.map((a) => a.label).toList();
     final list = names.length <= 1
         ? names.join()
@@ -283,7 +284,7 @@ class JarvisLines {
     return 'Chez $list${_t()} ?';
   }
 
-  String noDevice(JarvisIntent i) => 'Je ne trouve aucun équipement de ce type${_t()}.';
+  String noDevice(AssistantIntent i) => 'Je ne trouve aucun équipement de ce type${_t()}.';
   String unknown() => 'Je n\'ai pas compris${_t()}. Pouvez-vous reformuler ?';
   String greeting() {
     final h = DateTime.now().hour;
@@ -294,8 +295,9 @@ class JarvisLines {
   String thanks() => 'À votre service${_t()}.';
   String cancel() => 'Très bien, j\'annule.';
   String identity() =>
-      'Je suis Jarvis, votre assistant domotique. Je pilote vos volets, portails et lumières, dans toutes vos maisons.';
-  String error(String detail) => 'Désolé${_t()}, il y a un problème. $detail';
+      'Je suis ${persona.displayName}, votre ${persona.male ? 'assistant' : 'assistante'} domotique. '
+      'Je pilote vos volets, portails et lumières, dans toutes vos maisons.';
+  String error(String detail) => 'Désolé${persona.male ? '' : 'e'}${_t()}, il y a un problème. $detail';
   String done() => 'C\'est fait.';
 
   String status(AppData data, DeviceKind? only) {

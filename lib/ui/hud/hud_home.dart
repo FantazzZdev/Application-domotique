@@ -4,19 +4,19 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app_state.dart';
-import '../../jarvis/jarvis.dart';
+import '../../assistant/assistant.dart';
 import '../../models.dart';
 import '../accounts_page.dart';
 import '../common.dart';
 import '../shortcut_editor.dart';
 import 'hud_theme.dart';
 import 'hud_widgets.dart';
-import 'jarvis_settings_page.dart';
+import 'assistant_settings_page.dart';
 
 class HudHome extends StatefulWidget {
-  const HudHome({super.key, required this.state, required this.jarvis});
+  const HudHome({super.key, required this.state, required this.assistant});
   final AppState state;
-  final Jarvis jarvis;
+  final Assistant assistant;
 
   @override
   State<HudHome> createState() => _HudHomeState();
@@ -24,7 +24,7 @@ class HudHome extends StatefulWidget {
 
 class _HudHomeState extends State<HudHome> {
   AppState get s => widget.state;
-  Jarvis get j => widget.jarvis;
+  Assistant get j => widget.assistant;
   late Timer _clock;
   DateTime _now = DateTime.now();
 
@@ -50,6 +50,8 @@ class _HudHomeState extends State<HudHome> {
     super.dispose();
   }
 
+  Color get _persona => j.settings.persona.male ? Hud.cyan : Hud.violet;
+
   void _push(Widget page) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
 
   void _typeCommand() {
@@ -63,10 +65,10 @@ class _HudHomeState extends State<HudHome> {
           controller: ctrl,
           autofocus: true,
           style: Hud.bodyText(size: 18),
-          decoration: const InputDecoration(
-            labelText: 'Commande pour Jarvis',
+          decoration: InputDecoration(
+            labelText: 'Commande pour ${j.settings.persona.displayName}',
             hintText: 'Ferme les volets de la maison…',
-            prefixIcon: Icon(Icons.keyboard_command_key),
+            prefixIcon: const Icon(Icons.keyboard_command_key),
           ),
           onSubmitted: (v) {
             Navigator.pop(c);
@@ -115,9 +117,9 @@ class _HudHomeState extends State<HudHome> {
     return Row(children: [
       Expanded(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('J.A.R.V.I.S',
-              style: Hud.label(size: 20, color: Hud.cyan, spacing: 5, weight: FontWeight.w900)
-                  .copyWith(shadows: Hud.glow(Hud.cyan, 16))),
+          Text(j.settings.persona.spaced,
+              style: Hud.label(size: 20, color: _persona, spacing: 5, weight: FontWeight.w900)
+                  .copyWith(shadows: Hud.glow(_persona, 16))),
           const SizedBox(height: 2),
           Row(children: [
             Container(
@@ -147,8 +149,8 @@ class _HudHomeState extends State<HudHome> {
         color: Hud.bg2,
         onSelected: (v) {
           switch (v) {
-            case 'jarvis':
-              _push(JarvisSettingsPage(state: s, jarvis: j));
+            case 'assistant':
+              _push(AssistantSettingsPage(state: s, assistant: j));
             case 'accounts':
               _push(AccountsPage(state: s));
             case 'protocol':
@@ -158,7 +160,7 @@ class _HudHomeState extends State<HudHome> {
           }
         },
         itemBuilder: (_) => [
-          _menu('jarvis', Icons.record_voice_over, 'Réglages de Jarvis'),
+          _menu('assistant', Icons.record_voice_over, 'Assistant : ${j.settings.persona.displayName}'),
           _menu('accounts', Icons.hub_outlined, 'Secteurs (comptes Delta Dore)'),
           _menu('protocol', Icons.add_box_outlined, 'Nouveau protocole'),
           _menu('type', Icons.keyboard_outlined, 'Taper une commande'),
@@ -178,26 +180,26 @@ class _HudHomeState extends State<HudHome> {
 
   Widget _reactor() {
     final mode = switch (j.phase) {
-      JarvisPhase.idle => ReactorMode.idle,
-      JarvisPhase.listening => ReactorMode.listening,
-      JarvisPhase.thinking => ReactorMode.thinking,
-      JarvisPhase.speaking => ReactorMode.speaking,
+      AssistantPhase.idle => ReactorMode.idle,
+      AssistantPhase.listening => ReactorMode.listening,
+      AssistantPhase.thinking => ReactorMode.thinking,
+      AssistantPhase.speaking => ReactorMode.speaking,
     };
     final (String status, String line) = switch (j.phase) {
-      JarvisPhase.idle => (
-          j.wakeActive ? 'EN VEILLE // DITES « JARVIS »' : 'EN VEILLE // TOUCHEZ LE RÉACTEUR',
+      AssistantPhase.idle => (
+          j.wakeActive ? 'EN VEILLE // DITES ${j.settings.persona.displayName.toUpperCase()}' : 'EN VEILLE // TOUCHEZ LE RÉACTEUR',
           j.reply.isEmpty ? 'Tous les systèmes sont opérationnels.' : j.reply,
         ),
-      JarvisPhase.listening => ('À L\'ÉCOUTE', j.transcript.isEmpty ? '…' : '« ${j.transcript} »'),
-      JarvisPhase.thinking => ('ANALYSE', '« ${j.transcript} »'),
-      JarvisPhase.speaking => ('JARVIS', j.reply),
+      AssistantPhase.listening => ('À L\'ÉCOUTE', j.transcript.isEmpty ? '…' : '« ${j.transcript} »'),
+      AssistantPhase.thinking => ('ANALYSE', '« ${j.transcript} »'),
+      AssistantPhase.speaking => (j.settings.persona.displayName.toUpperCase(), j.reply),
     };
-    final color = j.phase == JarvisPhase.thinking ? Hud.amber : Hud.cyan;
+    final color = j.phase == AssistantPhase.thinking ? Hud.amber : _persona;
     return Column(children: [
       GestureDetector(
         onTap: j.listen,
         onLongPress: _typeCommand,
-        child: ArcReactor(mode: mode, level: j.level, size: 236),
+        child: ArcReactor(mode: mode, level: j.level, size: 236, color: _persona),
       ),
       const SizedBox(height: 10),
       Text(status, style: Hud.label(size: 10, color: color).copyWith(shadows: Hud.glow(color, 8))),
@@ -302,7 +304,7 @@ class _HudHomeState extends State<HudHome> {
     return HudPanel(
       title: a.label,
       accent: accent,
-      trailing: Text('SECTEUR · ${devices.length} UNITÉS', style: Hud.label(size: 8, color: Hud.dim, spacing: 1.5)),
+      trailing: Text('SECTEUR / ${devices.length} UNITÉS', style: Hud.label(size: 8, color: Hud.dim, spacing: 1.5)),
       child: devices.isEmpty
           ? Text('Aucun équipement détecté.', style: Hud.bodyText(color: Hud.dim))
           : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [

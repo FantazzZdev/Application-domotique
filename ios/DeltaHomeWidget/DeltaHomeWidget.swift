@@ -202,7 +202,7 @@ struct DeltaHomeButtonWidget: Widget {
       ButtonWidgetView(entry: entry)
         .containerBackground(.fill.tertiary, for: .widget)
     }
-    .configurationDisplayName("Bouton Jarvis")
+    .configurationDisplayName("Bouton Domus")
     .description("Un bouton pour une action : ouvrir le portail, fermer les volets…")
     .supportedFamilies([.systemSmall, .accessoryCircular])
   }
@@ -263,27 +263,27 @@ struct DeltaHomeShortcutsWidget: Widget {
       ShortcutsWidgetView(entry: entry)
         .containerBackground(.fill.tertiary, for: .widget)
     }
-    .configurationDisplayName("Protocoles Jarvis")
+    .configurationDisplayName("Protocoles Domus")
     .description("Vos 4 premiers raccourcis, en un tap.")
     .supportedFamilies([.systemSmall, .systemMedium])
   }
 }
 
-// MARK: - Widget « Jarvis » (ouvre l'app en écoute)
+// MARK: - Widget assistant vocal (ouvre l'app en écoute)
 
-struct JarvisEntry: TimelineEntry { let date: Date }
+struct VoiceEntry: TimelineEntry { let date: Date }
 
-struct JarvisProvider: TimelineProvider {
-  func placeholder(in context: Context) -> JarvisEntry { JarvisEntry(date: .now) }
-  func getSnapshot(in context: Context, completion: @escaping (JarvisEntry) -> Void) {
-    completion(JarvisEntry(date: .now))
+struct VoiceProvider: TimelineProvider {
+  func placeholder(in context: Context) -> VoiceEntry { VoiceEntry(date: .now) }
+  func getSnapshot(in context: Context, completion: @escaping (VoiceEntry) -> Void) {
+    completion(VoiceEntry(date: .now))
   }
-  func getTimeline(in context: Context, completion: @escaping (Timeline<JarvisEntry>) -> Void) {
-    completion(Timeline(entries: [JarvisEntry(date: .now)], policy: .never))
+  func getTimeline(in context: Context, completion: @escaping (Timeline<VoiceEntry>) -> Void) {
+    completion(Timeline(entries: [VoiceEntry(date: .now)], policy: .never))
   }
 }
 
-struct JarvisWidgetView: View {
+struct VoiceWidgetView: View {
   @Environment(\.widgetFamily) var family
   var body: some View {
     Group {
@@ -296,18 +296,18 @@ struct JarvisWidgetView: View {
         Image("Reactor").resizable().scaledToFit().padding(8)
       }
     }
-    .widgetURL(URL(string: "deltahome://jarvis?homeWidget"))
+    .widgetURL(URL(string: "deltahome://assistant?homeWidget"))
   }
 }
 
-struct JarvisWidget: Widget {
+struct VoiceWidget: Widget {
   var body: some WidgetConfiguration {
-    StaticConfiguration(kind: "JarvisWidget", provider: JarvisProvider()) { _ in
-      JarvisWidgetView()
+    StaticConfiguration(kind: "DomusVoiceWidget", provider: VoiceProvider()) { _ in
+      VoiceWidgetView()
         .containerBackground(Color(red: 0.01, green: 0.03, blue: 0.05), for: .widget)
     }
-    .configurationDisplayName("Jarvis")
-    .description("Touchez le réacteur pour parler à Jarvis.")
+    .configurationDisplayName("Assistant vocal")
+    .description("Touchez le réacteur pour parler à Orion ou Nova.")
     .supportedFamilies([.systemSmall, .accessoryCircular])
   }
 }
@@ -317,7 +317,7 @@ struct JarvisWidget: Widget {
 @main
 struct DeltaHomeWidgets: WidgetBundle {
   var body: some Widget {
-    JarvisWidget()
+    VoiceWidget()
     DeltaHomeButtonWidget()
     DeltaHomeShortcutsWidget()
   }

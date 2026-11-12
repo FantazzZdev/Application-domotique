@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
-/// Palette « hologramme » inspirée des interfaces d'Iron Man.
+/// Palette « hologramme » futuriste.
 class Hud {
   static const bg = Color(0xFF02070D);
   static const bg2 = Color(0xFF061420);
@@ -8,6 +8,7 @@ class Hud {
   static const cyanSoft = Color(0xFF7FF3FF);
   static const blue = Color(0xFF1A8CFF);
   static const amber = Color(0xFFFFB12A);
+  static const violet = Color(0xFFC58BFF);
   static const red = Color(0xFFFF4D5E);
   static const text = Color(0xFFDDF9FF);
   static const dim = Color(0xFF5C8FA3);
