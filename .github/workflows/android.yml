@@ -26,16 +26,25 @@ jobs:
       - name: Préparer la clé de signature
         env:
           DOMUS_KEYSTORE_B64: ${{ secrets.DOMUS_KEYSTORE_B64 }}
+          DOMUS_KEYSTORE_PASSWORD: ${{ secrets.DOMUS_KEYSTORE_PASSWORD }}
         run: |
           if [ -n "$DOMUS_KEYSTORE_B64" ]; then
-            echo "$DOMUS_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/domus.p12"
+            # Tolère espaces et retours à la ligne ajoutés au copier-coller.
+            printf '%s' "$DOMUS_KEYSTORE_B64" | tr -d ' \r\n\t' | base64 -d > "$RUNNER_TEMP/domus.p12"
+            PW="$(printf '%s' "$DOMUS_KEYSTORE_PASSWORD" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+            echo "::add-mask::$PW"
+            if keytool -list -keystore "$RUNNER_TEMP/domus.p12" -storetype PKCS12 -storepass "$PW" -alias domus > /dev/null; then
+              echo "Clé de signature valide."
+            else
+              echo "::error::Clé illisible : vérifiez les secrets DOMUS_KEYSTORE_B64 et DOMUS_KEYSTORE_PASSWORD."
+              exit 1
+            fi
             echo "DOMUS_KEYSTORE_PATH=$RUNNER_TEMP/domus.p12" >> "$GITHUB_ENV"
+            echo "DOMUS_KEYSTORE_PASSWORD=$PW" >> "$GITHUB_ENV"
           else
             echo "::warning::Secret DOMUS_KEYSTORE_B64 absent : APK signé avec une clé temporaire (pas de mise à jour possible)."
           fi
       - run: flutter build apk --release
-        env:
-          DOMUS_KEYSTORE_PASSWORD: ${{ secrets.DOMUS_KEYSTORE_PASSWORD }}
       - uses: actions/upload-artifact@v4
         with:
           name: DeltaHome-apk

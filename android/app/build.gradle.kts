@@ -35,12 +35,13 @@ android {
     // La clé n'est jamais dans le dépôt (public) : la compilation GitHub la
     // reçoit via les secrets DOMUS_KEYSTORE_B64 / DOMUS_KEYSTORE_PASSWORD.
     val keystorePath = System.getenv("DOMUS_KEYSTORE_PATH")
-    val keystorePassword = System.getenv("DOMUS_KEYSTORE_PASSWORD")
+    val keystorePassword = System.getenv("DOMUS_KEYSTORE_PASSWORD")?.trim()
     val hasDomusKey = !keystorePath.isNullOrBlank() && !keystorePassword.isNullOrBlank() && file(keystorePath).exists()
     signingConfigs {
         if (hasDomusKey) {
             create("domus") {
                 storeFile = file(keystorePath!!)
+                storeType = "pkcs12"
                 storePassword = keystorePassword
                 keyAlias = "domus"
                 keyPassword = keystorePassword
