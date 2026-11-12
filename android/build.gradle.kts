@@ -18,8 +18,13 @@ subprojects {
 // Certains plugins (ex. porcupine_flutter) compilent encore contre une
 // ancienne API Android, refusée par les bibliothèques AndroidX récentes.
 fun Project.bumpCompileSdk() {
-    val android = extensions.findByName("android") as? com.android.build.api.dsl.LibraryExtension ?: return
-    if ((android.compileSdk ?: 0) < 36) android.compileSdk = 36
+    if (!plugins.hasPlugin("com.android.library")) return
+    val android = extensions.findByName("android") ?: return
+    val methods = android.javaClass.methods
+    val get = methods.firstOrNull { it.name == "getCompileSdk" && it.parameterCount == 0 } ?: return
+    val set = methods.firstOrNull { it.name == "setCompileSdk" && it.parameterCount == 1 } ?: return
+    val current = (get.invoke(android) as? Int) ?: 0
+    if (current < 36) set.invoke(android, 36)
 }
 subprojects {
     if (state.executed) bumpCompileSdk() else afterEvaluate { bumpCompileSdk() }
