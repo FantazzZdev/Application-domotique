@@ -29,11 +29,28 @@ android {
         versionName = flutter.versionName
     }
 
+    // Clé de signature fixe (app à usage personnel) : chaque nouvel APK
+    // s'installe par-dessus le précédent comme une mise à jour, sans
+    // désinstaller ni perdre les comptes enregistrés.
+    // La clé n'est jamais dans le dépôt (public) : la compilation GitHub la
+    // reçoit via les secrets DOMUS_KEYSTORE_B64 / DOMUS_KEYSTORE_PASSWORD.
+    val keystorePath = System.getenv("DOMUS_KEYSTORE_PATH")
+    val keystorePassword = System.getenv("DOMUS_KEYSTORE_PASSWORD")
+    val hasDomusKey = !keystorePath.isNullOrBlank() && !keystorePassword.isNullOrBlank() && file(keystorePath).exists()
+    signingConfigs {
+        if (hasDomusKey) {
+            create("domus") {
+                storeFile = file(keystorePath!!)
+                storePassword = keystorePassword
+                keyAlias = "domus"
+                keyPassword = keystorePassword
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName(if (hasDomusKey) "domus" else "debug")
         }
     }
 }

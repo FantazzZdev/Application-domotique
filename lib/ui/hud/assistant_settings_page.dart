@@ -73,14 +73,8 @@ class _AssistantSettingsPageState extends State<AssistantSettingsPage> {
 
   Future<void> _choosePersona(Persona p) async {
     if (settings.persona == p) return;
-    settings
-      ..persona = p
-      ..voiceName = ''
-      ..neuralVoice = neuralVoices
-              .where((v) => v.male == p.male && (_installed[v.model.id] ?? false))
-              .firstOrNull
-              ?.id ??
-          '';
+    // Chaque assistant garde sa propre voix : on ne change que le prénom.
+    settings.persona = p;
     await _save(restartWake: true);
     await widget.assistant.say(widget.assistant.lines.identity());
   }

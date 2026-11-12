@@ -94,13 +94,16 @@ class _HudHomeState extends State<HudHome> {
                 backgroundColor: Hud.bg2,
                 onRefresh: s.refreshStates,
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                  padding: const EdgeInsets.fromLTRB(18, 8, 18, 32),
                   children: [
-                    _topBar(),
-                    const SizedBox(height: 8),
-                    _reactor(),
-                    const SizedBox(height: 18),
-                    if (s.accounts.isEmpty) _onboarding() else ..._content(),
+                    Appear(child: _topBar()),
+                    const SizedBox(height: 4),
+                    Appear(index: 1, child: _reactor()),
+                    const SizedBox(height: 22),
+                    if (s.accounts.isEmpty)
+                      Appear(index: 2, child: _onboarding())
+                    else
+                      for (final (i, w) in _content().indexed) Appear(index: 2 + i, child: w),
                   ],
                 ),
               ),
@@ -114,39 +117,41 @@ class _HudHomeState extends State<HudHome> {
   Widget _topBar() {
     String two(int v) => v.toString().padLeft(2, '0');
     final online = s.accounts.isNotEmpty;
+    final greeting = _now.hour >= 18 || _now.hour < 5 ? 'Bonsoir' : 'Bonjour';
     return Row(children: [
       Expanded(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(j.settings.persona.spaced,
-              style: Hud.label(size: 20, color: _persona, spacing: 5, weight: FontWeight.w900)
-                  .copyWith(shadows: Hud.glow(_persona, 16))),
-          const SizedBox(height: 2),
-          Row(children: [
-            Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: online ? const Color(0xFF3DFF9A) : Hud.amber,
-                boxShadow: [BoxShadow(color: online ? const Color(0xFF3DFF9A) : Hud.amber, blurRadius: 6)],
-              ),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              online
-                  ? '${s.accounts.length} SECTEUR${s.accounts.length > 1 ? 'S' : ''} EN LIGNE'
-                  : 'AUCUN SECTEUR',
-              style: Hud.label(size: 9, color: Hud.dim, spacing: 2),
-            ),
-          ]),
+          Text(greeting, style: Hud.bodyText(size: 15, color: Hud.dim)),
+          Text(j.settings.persona.displayName,
+              style: Hud.label(size: 24, color: Hud.text, spacing: 3, weight: FontWeight.w700)
+                  .copyWith(shadows: Hud.glow(_persona, 14))),
         ]),
       ),
-      Text('${two(_now.hour)}:${two(_now.minute)}:${two(_now.second)}',
-          style: Hud.label(size: 13, color: Hud.cyanSoft, spacing: 2, weight: FontWeight.w500)),
+      Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+        Text('${two(_now.hour)}:${two(_now.minute)}',
+            style: Hud.label(size: 18, color: Hud.cyanSoft, spacing: 1.5, weight: FontWeight.w500)),
+        Row(children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: online ? const Color(0xFF3DFF9A) : Hud.amber,
+              boxShadow: [BoxShadow(color: online ? const Color(0xFF3DFF9A) : Hud.amber, blurRadius: 6)],
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            online ? '${s.accounts.length} maison${s.accounts.length > 1 ? 's' : ''} en ligne' : 'Hors ligne',
+            style: Hud.bodyText(size: 12, color: Hud.dim),
+          ),
+        ]),
+      ]),
       const SizedBox(width: 4),
       PopupMenuButton<String>(
-        icon: const Icon(Icons.blur_on, color: Hud.cyan),
+        icon: const Icon(Icons.more_vert_rounded, color: Hud.cyan),
         color: Hud.bg2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         onSelected: (v) {
           switch (v) {
             case 'assistant':
@@ -160,10 +165,10 @@ class _HudHomeState extends State<HudHome> {
           }
         },
         itemBuilder: (_) => [
-          _menu('assistant', Icons.record_voice_over, 'Assistant : ${j.settings.persona.displayName}'),
-          _menu('accounts', Icons.hub_outlined, 'Secteurs (comptes Delta Dore)'),
-          _menu('protocol', Icons.add_box_outlined, 'Nouveau protocole'),
-          _menu('type', Icons.keyboard_outlined, 'Taper une commande'),
+          _menu('assistant', Icons.record_voice_over_outlined, 'Assistant et voix'),
+          _menu('accounts', Icons.home_work_outlined, 'Maisons (comptes Delta Dore)'),
+          _menu('protocol', Icons.add_circle_outline, 'Nouveau raccourci'),
+          _menu('type', Icons.keyboard_outlined, 'Écrire une commande'),
         ],
       ),
     ]);
@@ -185,27 +190,42 @@ class _HudHomeState extends State<HudHome> {
       AssistantPhase.thinking => ReactorMode.thinking,
       AssistantPhase.speaking => ReactorMode.speaking,
     };
+    final name = j.settings.persona.displayName;
     final (String status, String line) = switch (j.phase) {
       AssistantPhase.idle => (
-          j.wakeActive ? 'EN VEILLE // DITES ${j.settings.persona.displayName.toUpperCase()}' : 'EN VEILLE // TOUCHEZ LE RÉACTEUR',
+          j.wakeActive ? 'En veille · dites « $name »' : 'Touchez pour parler',
           j.reply.isEmpty ? 'Tous les systèmes sont opérationnels.' : j.reply,
         ),
-      AssistantPhase.listening => ('À L\'ÉCOUTE', j.transcript.isEmpty ? '…' : '« ${j.transcript} »'),
-      AssistantPhase.thinking => ('ANALYSE', '« ${j.transcript} »'),
-      AssistantPhase.speaking => (j.settings.persona.displayName.toUpperCase(), j.reply),
+      AssistantPhase.listening => ('Je vous écoute…', j.transcript.isEmpty ? '' : '« ${j.transcript} »'),
+      AssistantPhase.thinking => ('Analyse…', '« ${j.transcript} »'),
+      AssistantPhase.speaking => (name, j.reply),
     };
     final color = j.phase == AssistantPhase.thinking ? Hud.amber : _persona;
     return Column(children: [
       GestureDetector(
         onTap: j.listen,
         onLongPress: _typeCommand,
-        child: ArcReactor(mode: mode, level: j.level, size: 236, color: _persona),
+        child: AnimatedScale(
+          scale: j.phase == AssistantPhase.listening ? 1.06 : 1.0,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOutBack,
+          child: ArcReactor(mode: mode, level: j.level, size: 190, color: _persona),
+        ),
       ),
-      const SizedBox(height: 10),
-      Text(status, style: Hud.label(size: 10, color: color).copyWith(shadows: Hud.glow(color, 8))),
       const SizedBox(height: 8),
       AnimatedSwitcher(
-        duration: const Duration(milliseconds: 250),
+        duration: const Duration(milliseconds: 300),
+        child: Text(status,
+            key: ValueKey(status),
+            style: Hud.bodyText(size: 14, color: color, weight: FontWeight.w700).copyWith(letterSpacing: 0.6)),
+      ),
+      const SizedBox(height: 6),
+      AnimatedSwitcher(
+        duration: const Duration(milliseconds: 350),
+        transitionBuilder: (c, a) => FadeTransition(
+          opacity: a,
+          child: SlideTransition(position: Tween(begin: const Offset(0, 0.15), end: Offset.zero).animate(a), child: c),
+        ),
         child: Padding(
           key: ValueKey(line),
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -218,11 +238,56 @@ class _HudHomeState extends State<HudHome> {
           ),
         ),
       ),
+      const SizedBox(height: 10),
+      _handsFreeChip(),
+    ]);
+  }
+
+  /// Interrupteur mains libres + ce que le téléphone entend (diagnostic).
+  Widget _handsFreeChip() {
+    final on = j.settings.handsFree;
+    final name = j.settings.persona.displayName;
+    return Column(children: [
+      GestureDetector(
+        onTap: () async {
+          j.settings.handsFree = !on;
+          await s.saveSettings();
+          await j.startWakeWord();
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: (on ? _persona : Hud.dim).withValues(alpha: on ? 0.14 : 0.08),
+            border: Border.all(color: (on ? _persona : Hud.dim).withValues(alpha: 0.4)),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(on ? Icons.hearing_rounded : Icons.hearing_disabled_rounded, size: 16, color: on ? _persona : Hud.dim),
+            const SizedBox(width: 8),
+            Text(on ? 'Mains libres : « $name »' : 'Mains libres désactivé',
+                style: Hud.bodyText(size: 13, color: on ? Hud.text : Hud.dim, weight: FontWeight.w600)),
+          ]),
+        ),
+      ),
+      if (j.wakeError != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text(j.wakeError!, textAlign: TextAlign.center, style: Hud.bodyText(size: 12, color: Hud.red)),
+        )
+      else if (on && j.wakeHeard.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text('Entendu : « ${j.wakeHeard} »',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Hud.bodyText(size: 12, color: Hud.dim)),
+        ),
     ]);
   }
 
   Widget _onboarding() => HudPanel(
-        title: 'Initialisation',
+        title: 'Bienvenue',
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Text(
             'Connectez vos comptes Delta Dore — le vôtre, celui de la famille — '
@@ -230,14 +295,14 @@ class _HudHomeState extends State<HudHome> {
             style: Hud.bodyText(),
           ),
           const SizedBox(height: 16),
-          FilledButton(onPressed: () => _push(AccountsPage(state: s)), child: const Text('AJOUTER UN SECTEUR')),
+          FilledButton(onPressed: () => _push(AccountsPage(state: s)), child: const Text('Ajouter une maison')),
         ]),
       );
 
   List<Widget> _content() => [
-        _sectionTitle('PROTOCOLES', trailing: 'APPUI LONG : MODIFIER'),
+        _sectionTitle('Raccourcis', trailing: 'appui long pour modifier'),
         SizedBox(
-          height: 96,
+          height: 122,
           child: ListView(
             scrollDirection: Axis.horizontal,
             clipBehavior: Clip.none,
@@ -252,16 +317,18 @@ class _HudHomeState extends State<HudHome> {
                   onTap: () => s.runShortcut(sc),
                   onLongPress: () => showShortcutEditor(context, s, sc),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
               ],
-              GestureDetector(
+              InkWell(
+                borderRadius: BorderRadius.circular(20),
                 onTap: () => showShortcutEditor(context, s),
-                child: SizedBox(
+                child: Container(
                   width: 70,
-                  child: HudPanel(
-                    padding: const EdgeInsets.all(8),
-                    child: SizedBox(height: 74, child: Icon(Icons.add, color: Hud.cyan.withValues(alpha: 0.7))),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Hud.line),
                   ),
+                  child: Icon(Icons.add_rounded, color: Hud.cyan.withValues(alpha: 0.8)),
                 ),
               ),
             ],
@@ -271,15 +338,11 @@ class _HudHomeState extends State<HudHome> {
       ];
 
   Widget _sectionTitle(String t, {String? trailing}) => Padding(
-        padding: const EdgeInsets.only(bottom: 10, left: 2),
+        padding: const EdgeInsets.only(bottom: 12, left: 4),
         child: Row(children: [
-          Text(t, style: Hud.label(size: 11).copyWith(shadows: Hud.glow(Hud.cyan, 8))),
-          const SizedBox(width: 10),
-          Expanded(child: Container(height: 1, color: Hud.line)),
-          if (trailing != null) ...[
-            const SizedBox(width: 10),
-            Text(trailing, style: Hud.label(size: 7, color: Hud.dim, spacing: 1.5)),
-          ],
+          Text(t, style: Hud.bodyText(size: 18, weight: FontWeight.w700)),
+          const Spacer(),
+          if (trailing != null) Text(trailing, style: Hud.bodyText(size: 12, color: Hud.dim)),
         ]),
       );
 
@@ -288,6 +351,11 @@ class _HudHomeState extends State<HudHome> {
     // Le premier compte reste cyan ; les autres prennent leur couleur.
     return a.colorIndex == 0 ? Hud.cyan : Color.lerp(accountColor(a), Colors.white, 0.15)!;
   }
+
+  Widget _subTitle(String t) => Padding(
+        padding: const EdgeInsets.only(top: 6, bottom: 4),
+        child: Text(t, style: Hud.bodyText(size: 13, color: Hud.dim, weight: FontWeight.w600).copyWith(letterSpacing: 0.8)),
+      );
 
   Widget _sector(Account a) {
     final devices = s.devicesOf(a.id);
@@ -304,41 +372,39 @@ class _HudHomeState extends State<HudHome> {
     return HudPanel(
       title: a.label,
       accent: accent,
-      trailing: Text('SECTEUR / ${devices.length} UNITÉS', style: Hud.label(size: 8, color: Hud.dim, spacing: 1.5)),
+      trailing: Text('${devices.length} équipement${devices.length > 1 ? 's' : ''}',
+          style: Hud.bodyText(size: 12, color: Hud.dim)),
       child: devices.isEmpty
           ? Text('Aucun équipement détecté.', style: Hud.bodyText(color: Hud.dim))
           : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               if (covers.isNotEmpty) ...[
-                Text('VOLETS', style: Hud.label(size: 8, color: Hud.dim)),
-                const SizedBox(height: 10),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    if (covers.length > 1) ...[
-                      ShutterSlider(
-                        value: avg(),
-                        label: 'Tous',
-                        accent: Hud.amber,
-                        busy: covers.any((d) => s.busy.contains(d.key)),
-                        onChanged: (v) => s.runOn(covers, DeviceAction.open, position: v),
-                      ),
-                      Container(width: 1, height: 200, color: Hud.line, margin: const EdgeInsets.symmetric(horizontal: 6)),
-                    ],
-                    for (final d in covers)
-                      ShutterSlider(
-                        value: d.value,
-                        label: d.name,
-                        accent: accent,
-                        busy: s.busy.contains(d.key),
-                        onChanged: (v) => s.setPosition(d, v),
-                      ),
-                  ]),
-                ),
+                _subTitle('VOLETS'),
+                if (covers.length > 1) ...[
+                  ShutterRow(
+                    value: avg(),
+                    label: 'Tous les volets',
+                    icon: Icons.select_all_rounded,
+                    accent: Hud.amber,
+                    busy: covers.any((d) => s.busy.contains(d.key)),
+                    onChanged: (v) => s.runOn(covers, DeviceAction.open, position: v),
+                    onStep: (open) => s.runOn(covers, open ? DeviceAction.open : DeviceAction.close),
+                  ),
+                  Divider(color: Hud.line, height: 14),
+                ],
+                for (final d in covers)
+                  ShutterRow(
+                    value: d.value,
+                    label: d.name,
+                    accent: accent,
+                    busy: s.busy.contains(d.key),
+                    onChanged: (v) => s.setPosition(d, v),
+                    onStep: (open) => s.command(d, open ? DeviceAction.open : DeviceAction.close),
+                  ),
               ],
               if (gates.isNotEmpty) ...[
-                const SizedBox(height: 18),
-                Text('ACCÈS', style: Hud.label(size: 8, color: Hud.dim)),
-                const SizedBox(height: 10),
+                const SizedBox(height: 14),
+                _subTitle('ACCÈS'),
+                const SizedBox(height: 6),
                 Wrap(spacing: 18, runSpacing: 16, children: [
                   for (final d in gates)
                     HoldActivator(
@@ -346,14 +412,15 @@ class _HudHomeState extends State<HudHome> {
                       icon: d.kind == DeviceKind.garage ? Icons.garage : Icons.fence,
                       accent: accent,
                       busy: s.busy.contains(d.key),
+                      size: 104,
                       onActivate: () => s.command(d, DeviceAction.toggle),
                     ),
                 ]),
               ],
               if (lights.isNotEmpty) ...[
-                const SizedBox(height: 18),
-                Text('ÉCLAIRAGE', style: Hud.label(size: 8, color: Hud.dim)),
-                const SizedBox(height: 10),
+                const SizedBox(height: 14),
+                _subTitle('ÉCLAIRAGE'),
+                const SizedBox(height: 6),
                 Wrap(spacing: 10, runSpacing: 14, children: [
                   for (final d in lights)
                     HudSwitch(

@@ -319,3 +319,44 @@ class AssistantLines {
     return parts.join(' ');
   }
 }
+
+/// Distance d'édition (nombre de lettres à changer).
+int _levenshtein(String a, String b) {
+  if (a == b) return 0;
+  var prev = List<int>.generate(b.length + 1, (i) => i);
+  for (var i = 1; i <= a.length; i++) {
+    final cur = List<int>.filled(b.length + 1, 0)..[0] = i;
+    for (var j = 1; j <= b.length; j++) {
+      final cost = a[i - 1] == b[j - 1] ? 0 : 1;
+      cur[j] = [prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost].reduce((x, y) => x < y ? x : y);
+    }
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
+/// Transcriptions fréquentes des prénoms par la reconnaissance vocale.
+const _wakeVariants = {
+  Persona.orion: ['orion', 'aurion', 'horion', 'orian', 'oreon', 'orient', 'oryon', 'orillon', 'o rion', 'o\'rion'],
+  Persona.nova: ['nova', 'novah', 'nouva', 'novak', 'novas', 'no va', 'nauva', 'novaa'],
+};
+
+/// Cherche le prénom de l'assistant dans une phrase, en tolérant les petites
+/// erreurs de transcription. Renvoie ce qui suit le prénom, ou null.
+String? findWakeName(String words, Persona persona) {
+  final tokens = normalize(words).split(' ').where((t) => t.isNotEmpty).toList();
+  final name = persona.displayName.toLowerCase();
+  final variants = _wakeVariants[persona]!.map(normalize).toSet();
+  for (var i = 0; i < tokens.length; i++) {
+    for (final span in [1, 2]) {
+      if (i + span > tokens.length) continue;
+      final joined = tokens.sublist(i, i + span).join(' ');
+      final glued = tokens.sublist(i, i + span).join();
+      final close = variants.contains(joined) ||
+          variants.contains(glued) ||
+          (glued.length >= 4 && (glued.length - name.length).abs() <= 1 && _levenshtein(glued, name) <= 1);
+      if (close) return tokens.sublist(i + span).join(' ');
+    }
+  }
+  return null;
+}

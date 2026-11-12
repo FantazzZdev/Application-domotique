@@ -155,10 +155,9 @@ class Assistant extends ChangeNotifier {
   Timer? _wakeTimer;
   bool _wakeHandled = false;
 
-  /// Variantes de transcription du prénom par la reconnaissance vocale.
-  List<String> get _aliases => settings.persona == Persona.orion
-      ? const ['orion', 'o rion', 'aurion', 'horion', 'orian', 'oreon']
-      : const ['nova', 'novah', 'nouva', 'novak', 'no va'];
+  /// Dernière phrase entendue en mains libres (affichée pour vérifier ce
+  /// que le téléphone comprend).
+  String wakeHeard = '';
 
   /// Démarre l'écoute en continu du prénom (« Orion » / « Nova ») si le mode
   /// mains libres est activé. Ne fonctionne que lorsque l'app est ouverte.
@@ -252,18 +251,14 @@ class Assistant extends ChangeNotifier {
     _scheduleWake(Duration(milliseconds: 300 + 300 * _wakeErrors));
   }
 
-  /// Cherche le prénom ; renvoie ce qui a été dit après, ou null.
-  String? _afterName(String words) {
-    final text = normalize(words);
-    for (final alias in _aliases) {
-      final m = RegExp('\\b$alias\\b').firstMatch(text);
-      if (m != null) return text.substring(m.end).trim();
-    }
-    return null;
-  }
+  String? _afterName(String words) => findWakeName(words, settings.persona);
 
   void _onWakeResult(SpeechRecognitionResult r) {
     if (!_wakeListening || _wakeHandled) return;
+    if (r.recognizedWords.trim().isNotEmpty) {
+      wakeHeard = r.recognizedWords.trim();
+      notifyListeners();
+    }
     final rest = _afterName(r.recognizedWords);
     if (rest == null) return;
     _wakeErrors = 0;

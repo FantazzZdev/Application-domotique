@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'hud_widgets.dart';
+
 /// Palette « hologramme » futuriste.
 class Hud {
   static const bg = Color(0xFF02070D);
@@ -42,17 +44,21 @@ class Hud {
     final base = ThemeData(useMaterial3: true, colorScheme: scheme, brightness: Brightness.dark, fontFamily: body);
     return base.copyWith(
       scaffoldBackgroundColor: bg,
+      pageTransitionsTheme: const PageTransitionsTheme(builders: {
+        TargetPlatform.android: SmoothPageTransitionsBuilder(),
+        TargetPlatform.iOS: SmoothPageTransitionsBuilder(),
+      }),
       appBarTheme: AppBarTheme(
         backgroundColor: bg,
         surfaceTintColor: Colors.transparent,
         foregroundColor: cyan,
-        titleTextStyle: label(size: 15, spacing: 3),
+        titleTextStyle: bodyText(size: 20, weight: FontWeight.w700),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
         color: const Color(0xFF071824),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(18),
           side: const BorderSide(color: line),
         ),
         margin: EdgeInsets.zero,
@@ -61,28 +67,28 @@ class Hud {
         filled: true,
         fillColor: const Color(0xFF071824),
         labelStyle: const TextStyle(color: dim),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: line)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: line)),
         enabledBorder:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: line)),
+            OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: line)),
         focusedBorder:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: cyan)),
+            OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: cyan)),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: cyan,
           foregroundColor: bg,
           minimumSize: const Size(0, 52),
-          textStyle: label(size: 13, color: bg),
-          shape: const BeveledRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
+          textStyle: bodyText(size: 16, color: bg, weight: FontWeight.w700),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         backgroundColor: const Color(0xFF0B2433),
         contentTextStyle: bodyText(),
-        shape: const BeveledRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(8)),
-          side: BorderSide(color: cyan),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(color: line),
         ),
       ),
       bottomSheetTheme: const BottomSheetThemeData(backgroundColor: Color(0xFF061420)),

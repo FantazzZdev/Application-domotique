@@ -21,7 +21,21 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
+      # Clé de signature fixe (secrets du dépôt) : les nouveaux APK
+      # s'installent comme des mises à jour, sans désinstaller.
+      - name: Préparer la clé de signature
+        env:
+          DOMUS_KEYSTORE_B64: ${{ secrets.DOMUS_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$DOMUS_KEYSTORE_B64" ]; then
+            echo "$DOMUS_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/domus.p12"
+            echo "DOMUS_KEYSTORE_PATH=$RUNNER_TEMP/domus.p12" >> "$GITHUB_ENV"
+          else
+            echo "::warning::Secret DOMUS_KEYSTORE_B64 absent : APK signé avec une clé temporaire (pas de mise à jour possible)."
+          fi
       - run: flutter build apk --release
+        env:
+          DOMUS_KEYSTORE_PASSWORD: ${{ secrets.DOMUS_KEYSTORE_PASSWORD }}
       - uses: actions/upload-artifact@v4
         with:
           name: DeltaHome-apk

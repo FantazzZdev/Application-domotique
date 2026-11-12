@@ -9,42 +9,21 @@ import 'hud_theme.dart';
 // Fond : grille holographique, halo central, ligne de balayage.
 // ======================================================================
 
-class HudBackground extends StatefulWidget {
+class HudBackground extends StatelessWidget {
   const HudBackground({super.key, required this.child});
   final Widget child;
 
   @override
-  State<HudBackground> createState() => _HudBackgroundState();
-}
-
-class _HudBackgroundState extends State<HudBackground> with SingleTickerProviderStateMixin {
-  late final _c = AnimationController(vsync: this, duration: const Duration(seconds: 7))..repeat();
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Stack(children: [
-      Positioned.fill(
-        child: RepaintBoundary(
-          child: AnimatedBuilder(
-            animation: _c,
-            builder: (_, _) => CustomPaint(painter: _GridPainter(_c.value)),
-          ),
-        ),
-      ),
-      widget.child,
+      const Positioned.fill(child: RepaintBoundary(child: CustomPaint(painter: _GridPainter()))),
+      child,
     ]);
   }
 }
 
 class _GridPainter extends CustomPainter {
-  _GridPainter(this.t);
-  final double t;
+  const _GridPainter();
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -53,38 +32,24 @@ class _GridPainter extends CustomPainter {
       rect,
       Paint()
         ..shader = const RadialGradient(
-          center: Alignment(0, -0.45),
-          radius: 1.1,
-          colors: [Color(0xFF0A2A3D), Hud.bg2, Hud.bg],
-          stops: [0, 0.45, 1],
+          center: Alignment(0, -0.6),
+          radius: 1.2,
+          colors: [Color(0xFF0B2233), Hud.bg2, Hud.bg],
+          stops: [0, 0.5, 1],
         ).createShader(rect),
     );
-    final grid = Paint()
-      ..color = Hud.cyan.withValues(alpha: 0.045)
-      ..strokeWidth = 1;
-    const step = 28.0;
-    for (double x = 0; x < size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), grid);
+    // Trame très discrète.
+    final dot = Paint()..color = Hud.cyan.withValues(alpha: 0.05);
+    const step = 26.0;
+    for (double x = step; x < size.width; x += step) {
+      for (double y = step; y < size.height; y += step) {
+        canvas.drawCircle(Offset(x, y), 0.8, dot);
+      }
     }
-    for (double y = 0; y < size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
-    }
-    // Ligne de balayage.
-    final y = size.height * t;
-    canvas.drawRect(
-      Rect.fromLTWH(0, y - 60, size.width, 60),
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Hud.cyan.withValues(alpha: 0), Hud.cyan.withValues(alpha: 0.05)],
-        ).createShader(Rect.fromLTWH(0, y - 60, size.width, 60)),
-    );
-    canvas.drawLine(Offset(0, y), Offset(size.width, y), Paint()..color = Hud.cyan.withValues(alpha: 0.12));
   }
 
   @override
-  bool shouldRepaint(_GridPainter old) => old.t != t;
+  bool shouldRepaint(_GridPainter old) => false;
 }
 
 // ======================================================================
@@ -98,7 +63,7 @@ class HudPanel extends StatelessWidget {
     this.title,
     this.accent = Hud.cyan,
     this.trailing,
-    this.padding = const EdgeInsets.fromLTRB(14, 12, 14, 14),
+    this.padding = const EdgeInsets.fromLTRB(16, 14, 16, 16),
   });
 
   final Widget child;
@@ -109,8 +74,17 @@ class HudPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _PanelPainter(accent),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color.lerp(Hud.bg2, accent, 0.07)!, const Color(0xFF07131D)],
+        ),
+        border: Border.all(color: accent.withValues(alpha: 0.18)),
+        boxShadow: [BoxShadow(color: accent.withValues(alpha: 0.05), blurRadius: 24, spreadRadius: -4)],
+      ),
       child: Padding(
         padding: padding,
         child: Column(
@@ -119,16 +93,24 @@ class HudPanel extends StatelessWidget {
           children: [
             if (title != null) ...[
               Row(children: [
-                Container(width: 6, height: 6, color: accent),
-                const SizedBox(width: 8),
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: accent,
+                    shape: BoxShape.circle,
+                    boxShadow: [BoxShadow(color: accent.withValues(alpha: 0.6), blurRadius: 8)],
+                  ),
+                ),
+                const SizedBox(width: 10),
                 Expanded(
-                  child: Text(title!.toUpperCase(),
+                  child: Text(title!,
                       overflow: TextOverflow.ellipsis,
-                      style: Hud.label(size: 11, color: accent).copyWith(shadows: Hud.glow(accent, 8))),
+                      style: Hud.bodyText(size: 18, weight: FontWeight.w700).copyWith(letterSpacing: 0.3)),
                 ),
                 ?trailing,
               ]),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
             ],
             child,
           ],
@@ -148,55 +130,6 @@ Path chamfer(Rect r, double c) => Path()
   ..lineTo(r.left, r.bottom - c * 2)
   ..lineTo(r.left, r.top + c)
   ..close();
-
-class _PanelPainter extends CustomPainter {
-  _PanelPainter(this.accent);
-  final Color accent;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final r = (Offset.zero & size).deflate(0.5);
-    final path = chamfer(r, 8);
-    canvas.drawPath(
-      path,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [accent.withValues(alpha: 0.09), const Color(0x22061420)],
-        ).createShader(r),
-    );
-    canvas.drawPath(
-      path,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1
-        ..color = accent.withValues(alpha: 0.35),
-    );
-    // Équerres lumineuses.
-    final g = Paint()
-      ..color = accent
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-    canvas.drawPath(
-        Path()
-          ..moveTo(r.left, r.top + 22)
-          ..lineTo(r.left, r.top + 8)
-          ..lineTo(r.left + 8, r.top)
-          ..lineTo(r.left + 26, r.top),
-        g);
-    canvas.drawPath(
-        Path()
-          ..moveTo(r.right, r.bottom - 22)
-          ..lineTo(r.right, r.bottom - 8)
-          ..lineTo(r.right - 8, r.bottom)
-          ..lineTo(r.right - 26, r.bottom),
-        g);
-  }
-
-  @override
-  bool shouldRepaint(_PanelPainter old) => old.accent != accent;
-}
 
 // ======================================================================
 // Réacteur : cœur visuel de l'assistant.
@@ -736,39 +669,309 @@ class ProtocolTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: busy
-          ? null
-          : () {
-              HapticFeedback.mediumImpact();
-              onTap();
-            },
-      onLongPress: onLongPress,
-      child: CustomPaint(
-        painter: _PanelPainter(busy ? Hud.amber : accent),
-        child: SizedBox(
-          width: 148,
-          height: 92,
+    return Material(
+      color: Colors.transparent,
+      child: Ink(
+        width: 150,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [accent.withValues(alpha: 0.16), accent.withValues(alpha: 0.04)],
+          ),
+          border: Border.all(color: accent.withValues(alpha: 0.25)),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: busy
+              ? null
+              : () {
+                  HapticFeedback.mediumImpact();
+                  onTap();
+                },
+          onLongPress: onLongPress,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+            padding: const EdgeInsets.all(14),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Icon(icon, size: 22, color: accent, shadows: Hud.glow(accent, 10)),
-                const Spacer(),
-                busy
-                    ? SizedBox.square(
-                        dimension: 14,
-                        child: CircularProgressIndicator(strokeWidth: 1.5, color: Hud.amber),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: busy ? Hud.amber : accent,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [BoxShadow(color: (busy ? Hud.amber : accent).withValues(alpha: 0.45), blurRadius: 14)],
+                ),
+                child: busy
+                    ? const Padding(
+                        padding: EdgeInsets.all(10),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Hud.bg),
                       )
-                    : Text('EXEC', style: Hud.label(size: 8, color: Hud.dim)),
-              ]),
+                    : Icon(icon, size: 22, color: Hud.bg),
+              ),
               const Spacer(),
-              Text(label.toUpperCase(),
+              Text(label,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: Hud.bodyText(size: 14, weight: FontWeight.w700).copyWith(letterSpacing: 0.8, height: 1.05)),
-              Text(sub.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: Hud.label(size: 8, color: accent)),
+                  style: Hud.bodyText(size: 15, weight: FontWeight.w700).copyWith(height: 1.05)),
+              const SizedBox(height: 2),
+              Text(sub, maxLines: 1, overflow: TextOverflow.ellipsis, style: Hud.bodyText(size: 12, color: Hud.dim)),
             ]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ======================================================================
+// Volet en ligne : glisser de gauche (fermé) à droite (ouvert).
+// ======================================================================
+
+class ShutterRow extends StatefulWidget {
+  const ShutterRow({
+    super.key,
+    required this.value,
+    required this.label,
+    required this.onChanged,
+    this.onStep,
+    this.busy = false,
+    this.accent = Hud.cyan,
+    this.icon = Icons.roller_shades,
+  });
+
+  final double? value; // 0 fermé … 100 ouvert
+  final String label;
+  final ValueChanged<int> onChanged;
+
+  /// Ouvrir (true) / fermer (false) d'un coup.
+  final ValueChanged<bool>? onStep;
+  final bool busy;
+  final Color accent;
+  final IconData icon;
+
+  @override
+  State<ShutterRow> createState() => _ShutterRowState();
+}
+
+class _ShutterRowState extends State<ShutterRow> {
+  double? _drag;
+  int _lastTick = -1;
+
+  void _update(double dx, double width) {
+    final v = (dx / width).clamp(0.0, 1.0) * 100;
+    final snapped = (v / 5).round() * 5.0;
+    final tick = (snapped / 10).floor();
+    if (tick != _lastTick) {
+      _lastTick = tick;
+      HapticFeedback.selectionClick();
+    }
+    setState(() => _drag = snapped);
+  }
+
+  void _commit() {
+    final v = _drag;
+    setState(() => _drag = null);
+    if (v != null) {
+      HapticFeedback.mediumImpact();
+      widget.onChanged(v.round());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dragging = _drag != null;
+    final shown = (_drag ?? widget.value ?? 0) / 100;
+    final color = dragging ? Hud.amber : widget.accent;
+    final pct = dragging ? '${_drag!.round()} %' : (widget.value == null ? '—' : '${widget.value!.round()} %');
+    final state = widget.value == null
+        ? ''
+        : widget.value! <= 0
+            ? 'Fermé'
+            : widget.value! >= 100
+                ? 'Ouvert'
+                : 'Entrouvert';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(children: [
+          Icon(widget.icon, size: 18, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(widget.label,
+                overflow: TextOverflow.ellipsis, style: Hud.bodyText(size: 16, weight: FontWeight.w600)),
+          ),
+          if (widget.busy)
+            const Padding(
+              padding: EdgeInsets.only(right: 8),
+              child: SizedBox.square(dimension: 12, child: CircularProgressIndicator(strokeWidth: 1.5)),
+            ),
+          if (!dragging && state.isNotEmpty)
+            Text('$state  ', style: Hud.bodyText(size: 13, color: Hud.dim)),
+          AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 150),
+            style: Hud.label(size: 13, color: color, spacing: 1),
+            child: Text(pct),
+          ),
+        ]),
+        const SizedBox(height: 8),
+        Row(children: [
+          _stepButton(Icons.keyboard_double_arrow_down_rounded, () => widget.onStep?.call(false)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: LayoutBuilder(builder: (context, c) {
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onHorizontalDragStart: (d) => _update(d.localPosition.dx, c.maxWidth),
+                onHorizontalDragUpdate: (d) => _update(d.localPosition.dx, c.maxWidth),
+                onHorizontalDragEnd: (_) => _commit(),
+                onTapUp: (d) {
+                  _update(d.localPosition.dx, c.maxWidth);
+                  _commit();
+                },
+                child: SizedBox(
+                  height: 34,
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(end: shown),
+                    duration: Duration(milliseconds: dragging ? 0 : 450),
+                    curve: Curves.easeOutCubic,
+                    builder: (_, v, _) => CustomPaint(painter: _RowPainter(v, color, dragging)),
+                  ),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(width: 10),
+          _stepButton(Icons.keyboard_double_arrow_up_rounded, () => widget.onStep?.call(true)),
+        ]),
+      ]),
+    );
+  }
+
+  Widget _stepButton(IconData icon, VoidCallback onTap) => InkResponse(
+        radius: 22,
+        onTap: widget.busy
+            ? null
+            : () {
+                HapticFeedback.lightImpact();
+                onTap();
+              },
+        child: Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: widget.accent.withValues(alpha: 0.08),
+            border: Border.all(color: widget.accent.withValues(alpha: 0.25)),
+          ),
+          child: Icon(icon, size: 18, color: widget.accent),
+        ),
+      );
+}
+
+class _RowPainter extends CustomPainter {
+  _RowPainter(this.open, this.color, this.dragging);
+  final double open;
+  final Color color;
+  final bool dragging;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(12));
+    canvas.drawRRect(r, Paint()..color = color.withValues(alpha: 0.06));
+    canvas.drawRRect(
+      r,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..color = color.withValues(alpha: 0.22),
+    );
+    // Partie ouverte (lumière).
+    final w = size.width * open;
+    if (w > 0) {
+      canvas.save();
+      canvas.clipRRect(r);
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, w, size.height),
+        Paint()
+          ..shader = LinearGradient(
+            colors: [color.withValues(alpha: 0.10), color.withValues(alpha: dragging ? 0.45 : 0.32)],
+          ).createShader(Rect.fromLTWH(0, 0, w, size.height)),
+      );
+      // Lames du volet sur la partie fermée.
+      final slat = Paint()..color = color.withValues(alpha: 0.10);
+      for (double x = w + 4; x < size.width; x += 8) {
+        canvas.drawRect(Rect.fromLTWH(x, 4, 3, size.height - 8), slat);
+      }
+      canvas.restore();
+    } else {
+      final slat = Paint()..color = color.withValues(alpha: 0.10);
+      for (double x = 4; x < size.width - 4; x += 8) {
+        canvas.drawRect(Rect.fromLTWH(x, 4, 3, size.height - 8), slat);
+      }
+    }
+    // Curseur.
+    final x = w.clamp(6.0, size.width - 6);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(x, size.height / 2), width: 6, height: size.height - 6),
+          const Radius.circular(3)),
+      Paint()
+        ..color = color
+        ..maskFilter = const MaskFilter.blur(BlurStyle.solid, 3),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_RowPainter o) => o.open != open || o.color != color || o.dragging != dragging;
+}
+
+// ======================================================================
+// Apparition en douceur (fondu + glissement), décalée selon [index].
+// ======================================================================
+
+class Appear extends StatelessWidget {
+  const Appear({super.key, required this.child, this.index = 0});
+  final Widget child;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: 450 + 70 * index),
+      curve: Interval((index * 0.08).clamp(0.0, 0.5), 1, curve: Curves.easeOutCubic),
+      builder: (_, t, child) => Opacity(
+        opacity: t,
+        child: Transform.translate(offset: Offset(0, 18 * (1 - t)), child: child),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// Transition entre pages : fondu, léger zoom et glissement.
+class SmoothPageTransitionsBuilder extends PageTransitionsBuilder {
+  const SmoothPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final inCurve = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic, reverseCurve: Curves.easeInCubic);
+    final outCurve = CurvedAnimation(parent: secondaryAnimation, curve: Curves.easeOutCubic);
+    return FadeTransition(
+      opacity: inCurve,
+      child: SlideTransition(
+        position: Tween(begin: const Offset(0, 0.04), end: Offset.zero).animate(inCurve),
+        child: ScaleTransition(
+          scale: Tween(begin: 0.97, end: 1.0).animate(inCurve),
+          child: FadeTransition(
+            opacity: Tween(begin: 1.0, end: 0.6).animate(outCurve),
+            child: ScaleTransition(scale: Tween(begin: 1.0, end: 0.98).animate(outCurve), child: child),
           ),
         ),
       ),

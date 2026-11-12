@@ -74,4 +74,14 @@ void main() {
     expect(p.parse('fais-moi un rapport').kind, IntentKind.status);
     expect(p.parse('raconte une blague').kind, IntentKind.unknown);
   });
+
+  test('prénom détecté malgré les erreurs de transcription', () {
+    expect(findWakeName('Orion ferme les volets', Persona.orion), 'ferme les volets');
+    expect(findWakeName('ok Orian', Persona.orion), '');
+    expect(findWakeName('o rion ouvre le portail', Persona.orion), 'ouvre le portail');
+    expect(findWakeName('Nova', Persona.nova), '');
+    expect(findWakeName('novas, stop', Persona.nova), 'stop');
+    expect(findWakeName('ferme les volets', Persona.orion), isNull);
+    expect(findWakeName('nous avons mangé', Persona.nova), isNull);
+  });
 }

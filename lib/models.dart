@@ -194,13 +194,15 @@ class AssistantSettings {
   AssistantSettings({
     this.persona = Persona.orion,
     this.title = '',
-    this.handsFree = false,
+    this.handsFree = true,
     this.muteBeeps = true,
     this.speechRate = 0.5,
     this.pitch = 1.0,
-    this.voiceName = '',
+    this.voiceNameOrion = '',
+    this.voiceNameNova = '',
     this.voice = true,
-    this.neuralVoice = '',
+    this.neuralVoiceOrion = '',
+    this.neuralVoiceNova = '',
     this.aiEffect = 0.45,
     this.elevenKey = '',
     this.elevenVoiceOrion = '',
@@ -223,14 +225,21 @@ class AssistantSettings {
   double speechRate;
   double pitch;
 
-  /// Voix de synthèse choisie (vide = choix automatique homme / femme).
-  String voiceName;
+  /// Voix du téléphone choisie, par assistant (vide = automatique).
+  String voiceNameOrion;
+  String voiceNameNova;
+  String get voiceName => persona.male ? voiceNameOrion : voiceNameNova;
+  set voiceName(String v) => persona.male ? voiceNameOrion = v : voiceNameNova = v;
 
   /// Réponses parlées (sinon affichées seulement).
   bool voice;
 
-  /// Voix IA intégrée (« pierre », « siwis »…). Vide = voix du téléphone.
-  String neuralVoice;
+  /// Moteur de voix, par assistant : « pierre », « siwis »… (voix IA
+  /// intégrée), « eleven » (ElevenLabs) ou vide (voix du téléphone).
+  String neuralVoiceOrion;
+  String neuralVoiceNova;
+  String get neuralVoice => persona.male ? neuralVoiceOrion : neuralVoiceNova;
+  set neuralVoice(String v) => persona.male ? neuralVoiceOrion = v : neuralVoiceNova = v;
 
   /// Intensité de l'effet « IA » sur la voix intégrée (0 à 1).
   double aiEffect;
@@ -264,9 +273,11 @@ class AssistantSettings {
         'muteBeeps': muteBeeps,
         'speechRate': speechRate,
         'pitch': pitch,
-        'voiceName': voiceName,
+        'voiceNameOrion': voiceNameOrion,
+        'voiceNameNova': voiceNameNova,
         'voice': voice,
-        'neuralVoice': neuralVoice,
+        'neuralVoiceOrion': neuralVoiceOrion,
+        'neuralVoiceNova': neuralVoiceNova,
         'aiEffect': aiEffect,
         'elevenKey': elevenKey,
         'elevenVoiceOrion': elevenVoiceOrion,
@@ -281,13 +292,16 @@ class AssistantSettings {
       : AssistantSettings(
           persona: Persona.values.asNameMap()[j['persona']] ?? Persona.orion,
           title: (j['title'] as String?) ?? '',
-          handsFree: (j['handsFree'] as bool?) ?? false,
+          handsFree: (j['handsFree'] as bool?) ?? true,
           muteBeeps: (j['muteBeeps'] as bool?) ?? true,
           speechRate: (j['speechRate'] as num?)?.toDouble() ?? 0.5,
           pitch: (j['pitch'] as num?)?.toDouble() ?? 1.0,
-          voiceName: (j['voiceName'] as String?) ?? '',
+          voiceNameOrion: (j['voiceNameOrion'] as String?) ?? '',
+          voiceNameNova: (j['voiceNameNova'] as String?) ?? '',
           voice: (j['voice'] as bool?) ?? true,
-          neuralVoice: (j['neuralVoice'] as String?) ?? '',
+          // Anciennes versions : un seul réglage commun aux deux assistants.
+          neuralVoiceOrion: (j['neuralVoiceOrion'] as String?) ?? (j['neuralVoice'] as String?) ?? '',
+          neuralVoiceNova: (j['neuralVoiceNova'] as String?) ?? (j['neuralVoice'] as String?) ?? '',
           aiEffect: (j['aiEffect'] as num?)?.toDouble() ?? 0.45,
           elevenKey: (j['elevenKey'] as String?) ?? '',
           elevenVoiceOrion: (j['elevenVoiceOrion'] as String?) ?? '',

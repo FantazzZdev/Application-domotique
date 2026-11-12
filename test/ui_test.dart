@@ -63,9 +63,9 @@ void main() {
     final assistant = Assistant(state);
     await tester.pumpWidget(MaterialApp(theme: Hud.theme(), home: HudHome(state: state, assistant: assistant)));
     await tester.pump(const Duration(milliseconds: 500));
-    expect(find.text('O.R.I.O.N'), findsOneWidget);
-    expect(find.text('MAISON'), findsWidgets);
-    expect(find.text('40%'), findsOneWidget);
+    expect(find.text('Orion'), findsOneWidget);
+    expect(find.text('Maison'), findsWidgets);
+    expect(find.text('40 %'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 }
